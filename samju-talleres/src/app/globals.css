@@ -1,26 +1,53 @@
 @import "tailwindcss";
+@config "../../tailwind.config.ts";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #f7f8f7;
+  --foreground: #252927;
+  --surface: #ffffff;
+  --surface-muted: #f0f2f0;
+  --line: #e2e7e3;
+  --muted: #737a76;
+  --ink: #252927;
+  --sage: #e8efe9;
+  --sage-foreground: #3f5b48;
+  --blue: #eaf0f5;
+  --blue-foreground: #415b70;
+  --amber: #f5f0e5;
+  --amber-foreground: #725a2e;
+  --rose: #f5ebeb;
+  --rose-foreground: #754c4c;
+  --lavender: #efedf4;
+  --lavender-foreground: #5e5575;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-ink: var(--ink);
+  --color-sage: var(--sage);
+  --color-sage-foreground: var(--sage-foreground);
+  --color-blue: var(--blue);
+  --color-blue-foreground: var(--blue-foreground);
+  --color-amber: var(--amber);
+  --color-amber-foreground: var(--amber-foreground);
+  --color-rose: var(--rose);
+  --color-rose-foreground: var(--rose-foreground);
+  --color-lavender: var(--lavender);
+  --color-lavender-foreground: var(--lavender-foreground);
+  --font-sans: var(--font-geist-sans), Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+  --shadow-soft: 0 12px 32px -20px rgb(37 41 39 / 22%);
 }
 
 body {
+  min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, sans-serif;
 }
