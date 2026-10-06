@@ -69,6 +69,26 @@ Missing, inactive, invalid-role, or unreadable profiles are denied. Keep Row
 Level Security enabled and enforce authorization in database policies and API
 handlers as well; the proxy is not a replacement for data-layer authorization.
 
+### API routes
+
+- `GET /api/vehiculos?limit=50`: list vehicles (admin/receptionist).
+- `POST /api/vehiculos`: create a vehicle with `placa`, `marca`, `modelo`,
+  `anio`, `color`, `kilometraje`, and optional JSONB `datos_propietario`
+  (admin/receptionist).
+- `GET /api/ordenes?limit=50`: list work orders; mechanics only receive orders
+  assigned to their profile.
+- `POST /api/ordenes`: create an order with `vehiculo_id`,
+  `descripcion_trabajo`, `tipo_servicio`, and optional `mecanico_id`. The
+  authenticated user is set as `recepcionista_id`, and the initial state is
+  always `Recibido` (admin/receptionist).
+- `PATCH /api/ordenes/:id/estado`: change an order state. Admin and reception
+  may update any order; mechanics may only update orders assigned to them.
+  Transitions follow the defined workflow; `Cancelado` is only available from
+  `Pendiente Aprobación` or `Control de Calidad`.
+
+All request bodies are validated with Zod on the server. Status history is
+expected to be recorded by the database trigger on `historial_estados`.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
