@@ -107,10 +107,13 @@ export default async function WorkOrderDetailPage({
 
   if (!orden) notFound();
 
-  const profileIds = [orden.mecanico_id, orden.recepcionista_id].filter(
+  const assignedProfileIds = [
+    orden.mecanico_id,
+    orden.recepcionista_id,
+  ].filter(
     (id): id is string => Boolean(id),
   );
-  const [vehicleResult, notesResult, profilesResult] = await Promise.all([
+  const [vehicleResult, notesResult] = await Promise.all([
     supabase
       .from("vehiculos")
       .select("id, placa, marca, modelo, anio, color, kilometraje")
@@ -121,9 +124,6 @@ export default async function WorkOrderDetailPage({
       .select("id, orden_id, autor_id, contenido, creado_en")
       .eq("orden_id", orden.id)
       .order("creado_en", { ascending: false }),
-    profileIds.length
-      ? supabase.from("profiles").select("id, nombre").in("id", profileIds)
-      : Promise.resolve({ data: [], error: null }),
   ]);
 
   if (vehicleResult.error) {
@@ -136,6 +136,18 @@ export default async function WorkOrderDetailPage({
       `No se pudieron cargar las notas internas: ${notesResult.error.message}`,
     );
   }
+  const profileIds = Array.from(
+    new Set([
+      ...assignedProfileIds,
+      ...(notesResult.data ?? [])
+        .map((note) => note.autor_id)
+        .filter((id): id is string => Boolean(id)),
+    ]),
+  );
+  const profilesResult = profileIds.length
+    ? await supabase.from("profiles").select("id, nombre").in("id", profileIds)
+    : { data: [], error: null };
+
   if (profilesResult.error) {
     throw new Error(
       `No se pudo cargar el personal asignado: ${profilesResult.error.message}`,
