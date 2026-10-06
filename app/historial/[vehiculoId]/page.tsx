@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
+  ArrowRight,
   CalendarDays,
   Camera,
   CarFront,
@@ -319,6 +320,13 @@ export default async function VehicleHistoryPage({
                             {orden.motivo_cancelacion}
                           </p>
                         )}
+                        <Link
+                          className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-ink transition hover:text-muted"
+                          href={`/ordenes/${orden.id}`}
+                        >
+                          Abrir detalle y notas internas
+                          <ArrowRight aria-hidden="true" size={15} />
+                        </Link>
                       </div>
 
                       <div className="space-y-6">
