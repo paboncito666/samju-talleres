@@ -42,13 +42,28 @@ type AuthMode = "login" | "register";
 interface AuthFormProps {
   mode: AuthMode;
   initialError?: string;
+  returnTo?: string;
 }
 
-const callbackUrl = () =>
-  `${window.location.origin}/auth/callback?next=${encodeURIComponent("/dashboard")}`;
+function safeReturnTo(value: string | undefined): string {
+  if (
+    !value ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.startsWith("/\\")
+  ) {
+    return "/dashboard";
+  }
 
-export function AuthForm({ mode, initialError }: AuthFormProps) {
+  const target = new URL(value, "https://samju.invalid");
+  return target.origin === "https://samju.invalid"
+    ? `${target.pathname}${target.search}${target.hash}`
+    : "/dashboard";
+}
+
+export function AuthForm({ mode, initialError, returnTo }: AuthFormProps) {
   const router = useRouter();
+  const destination = safeReturnTo(returnTo);
   const [formError, setFormError] = useState(
     initialError ? "No se pudo completar el acceso con Google. Inténtalo de nuevo." : "",
   );
@@ -82,7 +97,7 @@ export function AuthForm({ mode, initialError }: AuthFormProps) {
           password: values.password,
           options: {
             data: { full_name: values.fullName?.trim() },
-            emailRedirectTo: callbackUrl(),
+            emailRedirectTo: callbackUrl(destination),
           },
         });
 
@@ -103,7 +118,7 @@ export function AuthForm({ mode, initialError }: AuthFormProps) {
         if (error) throw error;
       }
 
-      router.replace("/dashboard");
+      router.replace(destination);
       router.refresh();
     } catch (error) {
       setFormError(
@@ -122,7 +137,7 @@ export function AuthForm({ mode, initialError }: AuthFormProps) {
       const supabase = createSupabaseBrowserClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: callbackUrl() },
+        options: { redirectTo: callbackUrl(destination) },
       });
 
       if (error) throw error;
@@ -316,6 +331,12 @@ export function AuthForm({ mode, initialError }: AuthFormProps) {
       </CardContent>
     </Card>
   );
+}
+
+function callbackUrl(destination: string): string {
+  const callback = new URL("/auth/callback", window.location.origin);
+  callback.searchParams.set("next", destination);
+  return callback.toString();
 }
 
 function GoogleMark() {

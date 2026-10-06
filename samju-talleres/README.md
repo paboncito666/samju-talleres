@@ -55,6 +55,20 @@ the Next.js application. Do not expose the Client Secret or a Supabase
 `service_role` key in client code. Session refresh for protected routes is
 handled by the root `proxy.ts`.
 
+### Route access by profile role
+
+The Next.js 16 root `proxy.ts` refreshes the Supabase session and checks the
+active user's `profiles` row (`id`, `rol`, `activo`) before serving protected
+routes. Access is deny-by-default:
+
+- `admin`: dashboard, vehicles, work orders, and history
+- `recepcionista`: dashboard, vehicles, work orders, and history
+- `mecanico`: dashboard, work orders, and history
+
+Missing, inactive, invalid-role, or unreadable profiles are denied. Keep Row
+Level Security enabled and enforce authorization in database policies and API
+handlers as well; the proxy is not a replacement for data-layer authorization.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
