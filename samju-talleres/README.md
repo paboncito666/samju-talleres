@@ -23,6 +23,12 @@ key. Use `src/lib/supabase/client.ts` in Client Components and
 `src/lib/supabase/server.ts` in Server Components, Route Handlers, or Server
 Actions. Never expose a `service_role` key to the browser.
 
+Email/password sign-up and sign-in are available at `/register` and `/login`.
+Configure email authentication in the Supabase dashboard. If email confirmation
+is enabled, add `http://localhost:3000/auth/callback` and the production
+callback URL to Supabase's allowed redirect URLs. Session refresh for protected
+routes is handled by the root `proxy.ts`.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
