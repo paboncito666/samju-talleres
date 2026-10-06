@@ -3,13 +3,13 @@
 
 :root {
   color-scheme: light;
-  --background: #f7f8f7;
-  --foreground: #252927;
+  --background: #f7f7f5;
+  --foreground: #302d29;
   --surface: #ffffff;
-  --surface-muted: #f0f2f0;
-  --line: #e2e7e3;
-  --muted: #737a76;
-  --ink: #252927;
+  --surface-muted: #f4f2ef;
+  --line: #e8e5e1;
+  --muted: #625c55;
+  --ink: #111113;
   --sage: #e8efe9;
   --sage-foreground: #3f5b48;
   --blue: #eaf0f5;
@@ -40,14 +40,41 @@
   --color-rose-foreground: var(--rose-foreground);
   --color-lavender: var(--lavender);
   --color-lavender-foreground: var(--lavender-foreground);
-  --font-sans: var(--font-geist-sans), Arial, sans-serif;
-  --font-mono: var(--font-geist-mono), monospace;
+  --font-sans: var(--font-inter), Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, monospace;
   --shadow-soft: 0 12px 32px -20px rgb(37 41 39 / 22%);
+}
+
+* {
+  scrollbar-color: #d6d2cc transparent;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #d6d2cc;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #a9a39b;
+  background-clip: padding-box;
+}
+
+*:focus-visible {
+  outline: 2px solid #6b806f;
+  outline-offset: 2px;
 }
 
 body {
   min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, sans-serif;
+  font-family: var(--font-inter), Arial, sans-serif;
 }
