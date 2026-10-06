@@ -97,6 +97,15 @@ export interface RepuestoOrden {
   costo_unitario: number;
 }
 
+export interface OrdenDetalle extends OrdenTrabajo {
+  vehiculo: Vehiculo;
+  mecanico: Pick<Perfil, "id" | "nombre"> | null;
+  recepcionista: Pick<Perfil, "id" | "nombre"> | null;
+  trabajos_realizados: TrabajoRealizado[];
+  repuestos_orden: RepuestoOrden[];
+  estadoPrevioCancelacion: EstadoOrden | null;
+}
+
 export interface OrdenActiva {
   id: string;
   placa: string;

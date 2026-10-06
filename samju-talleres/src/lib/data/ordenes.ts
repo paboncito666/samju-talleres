@@ -1,5 +1,6 @@
 import {
   ESTADOS,
+  TRANSICIONES,
   esEstadoFinal,
   type EstadoOrden,
 } from "@/lib/estados";
@@ -13,17 +14,85 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   CargaMecanico,
   FiltrosOrdenes,
+  HistorialEstado,
   OrdenConRelaciones,
+  OrdenDetalle,
   OrdenesPorEstado,
+  RepuestoOrden,
   OrdenTrabajo,
   Perfil,
   ResultadoDatos,
   ResultadoListadoOrdenes,
   ResumenDashboard,
+  TrabajoRealizado,
   Vehiculo,
 } from "@/types";
 
 const estados = Object.keys(ESTADOS) as EstadoOrden[];
+
+const TRABAJOS_MOCK: TrabajoRealizado[] = [
+  {
+    id: "40000000-0000-4000-8000-000000000001",
+    creado_en: "2026-10-06T09:00:00.000Z",
+    orden_id: ORDENES_MOCK[6].id,
+    descripcion: "Desmontaje de transmisión",
+    tipo: "mecanico",
+    completado: true,
+  },
+  {
+    id: "40000000-0000-4000-8000-000000000002",
+    creado_en: "2026-10-06T09:00:00.000Z",
+    orden_id: ORDENES_MOCK[6].id,
+    descripcion: "Instalación de embrague nuevo",
+    tipo: "mecanico",
+    completado: false,
+  },
+  {
+    id: "40000000-0000-4000-8000-000000000003",
+    creado_en: "2026-10-06T09:00:00.000Z",
+    orden_id: ORDENES_MOCK[12].id,
+    descripcion: "Cambio de pastillas de freno",
+    tipo: "mecanico",
+    completado: true,
+  },
+  {
+    id: "40000000-0000-4000-8000-000000000004",
+    creado_en: "2026-10-06T09:00:00.000Z",
+    orden_id: ORDENES_MOCK[12].id,
+    descripcion: "Prueba de ruta y verificación",
+    tipo: "mecanico",
+    completado: true,
+  },
+];
+
+const REPUESTOS_MOCK: RepuestoOrden[] = [
+  {
+    id: "50000000-0000-4000-8000-000000000001",
+    creado_en: "2026-10-06T09:00:00.000Z",
+    orden_id: ORDENES_MOCK[6].id,
+    nombre_repuesto: "Kit de embrague",
+    cantidad: 1,
+    costo_unitario: 680000,
+  },
+  {
+    id: "50000000-0000-4000-8000-000000000002",
+    creado_en: "2026-10-06T09:00:00.000Z",
+    orden_id: ORDENES_MOCK[12].id,
+    nombre_repuesto: "Pastillas de freno delanteras",
+    cantidad: 1,
+    costo_unitario: 185000,
+  },
+  {
+    id: "50000000-0000-4000-8000-000000000003",
+    creado_en: "2026-10-06T09:00:00.000Z",
+    orden_id: ORDENES_MOCK[12].id,
+    nombre_repuesto: "Líquido de frenos",
+    cantidad: 2,
+    costo_unitario: 28000,
+  },
+];
+
+const ESTADO_PREVIO_CANCELACION_MOCK = new Map<string, EstadoOrden>();
 
 function exitoso<T>(data: T): ResultadoDatos<T> {
   return { data, error: null };
@@ -305,6 +374,187 @@ export async function getMecanicos(): Promise<
   } catch (error) {
     return fallido(error);
   }
+}
+
+export async function getOrdenById(id: string): Promise<OrdenDetalle | null> {
+  if (USE_MOCKS) {
+    const orden = ORDENES_MOCK.find((item) => item.id === id);
+    if (!orden) {
+      return null;
+    }
+    const vehiculo = VEHICULOS_MOCK.find(
+      (item) => item.id === orden.vehiculo_id,
+    );
+    if (!vehiculo) {
+      throw new Error(`No se encontró el vehículo de la orden ${id}.`);
+    }
+    const mecanicoPerfil = orden.mecanico_id
+      ? MECANICOS_MOCK.find((item) => item.id === orden.mecanico_id)
+      : undefined;
+    return {
+      ...orden,
+      vehiculo,
+      mecanico: mecanicoPerfil
+        ? { id: mecanicoPerfil.id, nombre: mecanicoPerfil.nombre }
+        : null,
+      recepcionista: null,
+      trabajos_realizados: TRABAJOS_MOCK.filter(
+        (trabajo) => trabajo.orden_id === id,
+      ),
+      repuestos_orden: REPUESTOS_MOCK.filter(
+        (repuesto) => repuesto.orden_id === id,
+      ),
+      estadoPrevioCancelacion:
+        orden.estado === "CANCELADO"
+          ? (ESTADO_PREVIO_CANCELACION_MOCK.get(id) ?? "PENDIENTE")
+          : null,
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data: orden, error: errorOrden } = await supabase
+    .from("ordenes_trabajo")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle<OrdenTrabajo>();
+
+  if (errorOrden) {
+    throw errorDe(errorOrden);
+  }
+  if (!orden) {
+    return null;
+  }
+
+  const [
+    { data: vehiculo, error: errorVehiculo },
+    { data: perfiles, error: errorPerfiles },
+    { data: trabajos, error: errorTrabajos },
+    { data: repuestos, error: errorRepuestos },
+    { data: historial, error: errorHistorial },
+  ] = await Promise.all([
+    supabase
+      .from("vehiculos")
+      .select("*")
+      .eq("id", orden.vehiculo_id)
+      .maybeSingle<Vehiculo>(),
+    supabase
+      .from("profiles")
+      .select("id, nombre")
+      .in(
+        "id",
+        [
+          orden.mecanico_id,
+          orden.recepcionista_id,
+        ].filter((profileId): profileId is string => profileId !== null),
+      )
+      .returns<Pick<Perfil, "id" | "nombre">[]>(),
+    supabase
+      .from("trabajos_realizados")
+      .select("*")
+      .eq("orden_id", id)
+      .order("creado_en")
+      .returns<TrabajoRealizado[]>(),
+    supabase
+      .from("repuestos_orden")
+      .select("*")
+      .eq("orden_id", id)
+      .order("creado_en")
+      .returns<RepuestoOrden[]>(),
+    supabase
+      .from("historial_estados")
+      .select("estado_anterior, creado_en")
+      .eq("orden_id", id)
+      .eq("estado_nuevo", "CANCELADO")
+      .order("creado_en", { ascending: false })
+      .limit(1)
+      .maybeSingle<Pick<HistorialEstado, "estado_anterior" | "creado_en">>(),
+  ]);
+
+  if (errorVehiculo) throw errorDe(errorVehiculo);
+  if (errorPerfiles) throw errorDe(errorPerfiles);
+  if (errorTrabajos) throw errorDe(errorTrabajos);
+  if (errorRepuestos) throw errorDe(errorRepuestos);
+  if (errorHistorial) throw errorDe(errorHistorial);
+  if (!vehiculo) {
+    throw new Error(`No se encontró el vehículo de la orden ${id}.`);
+  }
+
+  const perfilesPorId = new Map(perfiles.map((perfil) => [perfil.id, perfil]));
+  return {
+    ...orden,
+    vehiculo,
+    mecanico: orden.mecanico_id
+      ? (perfilesPorId.get(orden.mecanico_id) ?? null)
+      : null,
+    recepcionista: orden.recepcionista_id
+      ? (perfilesPorId.get(orden.recepcionista_id) ?? null)
+      : null,
+    trabajos_realizados: trabajos,
+    repuestos_orden: repuestos,
+    estadoPrevioCancelacion: historial?.estado_anterior ?? null,
+  };
+}
+
+export async function cambiarEstado(
+  ordenId: string,
+  nuevoEstado: EstadoOrden,
+  motivo?: string,
+): Promise<ResultadoDatos<OrdenTrabajo>> {
+  if (!estados.includes(nuevoEstado)) {
+    return fallido(new Error("El nuevo estado no es válido."));
+  }
+
+  if (nuevoEstado === "CANCELADO" && !motivo?.trim()) {
+    return fallido(
+      new Error("Debes indicar el motivo para cancelar la orden."),
+    );
+  }
+
+  if (USE_MOCKS) {
+    const orden = ORDENES_MOCK.find((item) => item.id === ordenId);
+    if (!orden) {
+      return fallido(new Error("No se encontró la orden de trabajo."));
+    }
+    if (!TRANSICIONES[orden.estado].includes(nuevoEstado)) {
+      return fallido(
+        new Error(
+          `No se puede cambiar de ${ESTADOS[orden.estado].label} a ${ESTADOS[nuevoEstado].label}.`,
+        ),
+      );
+    }
+
+    const estadoAnterior = orden.estado;
+    if (nuevoEstado === "CANCELADO") {
+      ESTADO_PREVIO_CANCELACION_MOCK.set(ordenId, estadoAnterior);
+    }
+    orden.estado = nuevoEstado;
+    orden.motivo_cancelacion =
+      nuevoEstado === "CANCELADO" ? (motivo?.trim() ?? null) : null;
+    orden.actualizado_en = new Date().toISOString();
+    if (nuevoEstado === "ENTREGADO") {
+      orden.fecha_entrega_real = new Date().toISOString();
+    }
+    return exitoso({ ...orden });
+  }
+
+  return cambiarEstadoReal(ordenId, nuevoEstado, motivo);
+}
+
+async function cambiarEstadoReal(
+  ordenId: string,
+  nuevoEstado: EstadoOrden,
+  motivo?: string,
+): Promise<ResultadoDatos<OrdenTrabajo>> {
+  // TODO Samuel: confirmar e integrar la API Route POST /api/ordenes/[id]/estado
+  // y su body { estado: nuevoEstado, motivo } antes de conectar esta operación.
+  void ordenId;
+  void nuevoEstado;
+  void motivo;
+  return fallido(
+    new Error(
+      "El cambio de estado real está pendiente de integrar con la API Route de órdenes de Samuel.",
+    ),
+  );
 }
 
 function contarEstados(ordenes: Pick<OrdenTrabajo, "estado">[]): OrdenesPorEstado[] {
