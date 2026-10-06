@@ -117,6 +117,22 @@ export interface CargaMecanico {
   promedio_dias: number;
 }
 
+export interface OrdenesPorEstado {
+  estado: EstadoOrden;
+  cantidad: number;
+}
+
+export interface ResumenDashboard {
+  ordenesActivas: number;
+  listasParaEntrega: number;
+  promedioDiasReparacion: number;
+  ordenesEnReparacion: number;
+}
+
+export type ResultadoDatos<T> =
+  | { data: T; error: null }
+  | { data: null; error: Error };
+
 export type OrdenConRelaciones = OrdenTrabajo & {
   vehiculo: Vehiculo;
   mecanico: Pick<Perfil, "id" | "nombre"> | null;
