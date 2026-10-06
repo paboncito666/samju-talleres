@@ -4,6 +4,7 @@ import { Button, EmptyState } from "@/components/ui";
 import { FiltrosVehiculos } from "@/components/vehiculos/FiltrosVehiculos";
 import { PaginacionVehiculos } from "@/components/vehiculos/PaginacionVehiculos";
 import { TablaOrdenes } from "@/components/vehiculos/TablaOrdenes";
+import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
 import { ESTADOS, type EstadoOrden } from "@/lib/estados";
 import { getMecanicos, getOrdenes } from "@/lib/data/ordenes";
 
@@ -74,13 +75,16 @@ export default async function VehiculosPage({
             Busca y filtra las órdenes de trabajo del taller.
           </p>
         </div>
-        <Button
-          disabled
-          title="La creación de órdenes se conectará próximamente"
-          iconLeft={<Plus aria-hidden="true" size={16} />}
-        >
-          Nueva orden
-        </Button>
+        <div className="flex items-center gap-3">
+          <RealtimeRefresher tables={[{ table: "ordenes_trabajo" }]} />
+          <Button
+            disabled
+            title="La creación de órdenes se conectará próximamente"
+            iconLeft={<Plus aria-hidden="true" size={16} />}
+          >
+            Nueva orden
+          </Button>
+        </div>
       </header>
 
       <FiltrosVehiculos

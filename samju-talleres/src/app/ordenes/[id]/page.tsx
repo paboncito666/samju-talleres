@@ -15,6 +15,7 @@ import { GaleriaFotos } from "@/components/ordenes/GaleriaFotos";
 import { HistorialEstados } from "@/components/ordenes/HistorialEstados";
 import { NotasInternas } from "@/components/ordenes/NotasInternas";
 import { TimelineEstados } from "@/components/ordenes/TimelineEstados";
+import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
 import { getOrdenById } from "@/lib/data/ordenes";
 
 interface OrdenDetallePageProps {
@@ -68,11 +69,21 @@ export default async function OrdenDetallePage({
             {orden.vehiculo.anio} · {orden.vehiculo.color ?? "Color no registrado"}
           </p>
         </div>
-        <CambiarEstadoModal
-          ordenId={orden.id}
-          estadoActual={orden.estado}
-          puedeCambiarEstado
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <RealtimeRefresher
+            ordenId={orden.id}
+            tables={[
+              { table: "ordenes_trabajo", filter: `id=eq.${orden.id}` },
+              { table: "fotos_vehiculo", filter: `orden_id=eq.${orden.id}` },
+              { table: "historial_estados", filter: `orden_id=eq.${orden.id}` },
+            ]}
+          />
+          <CambiarEstadoModal
+            ordenId={orden.id}
+            estadoActual={orden.estado}
+            puedeCambiarEstado
+          />
+        </div>
       </header>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">

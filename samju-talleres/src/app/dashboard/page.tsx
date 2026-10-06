@@ -14,6 +14,7 @@ import {
 import { CargaMecanicosChart } from "@/components/dashboard/CargaMecanicosChart";
 import { OrdenesPorEstadoChart } from "@/components/dashboard/OrdenesPorEstadoChart";
 import { TiempoReparacionChart } from "@/components/dashboard/TiempoReparacionChart";
+import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
 import {
   getCargaMecanicos,
   getOrdenesPorEstado,
@@ -73,13 +74,16 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-8">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">
-          Dashboard
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          Resumen general de la operación del taller.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">
+            Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            Resumen general de la operación del taller.
+          </p>
+        </div>
+        <RealtimeRefresher tables={[{ table: "ordenes_trabajo" }]} />
       </header>
 
       <section
