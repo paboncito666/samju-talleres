@@ -68,6 +68,12 @@ rol. `20261006102000_fix_auth_profile_trigger.sql` fija el `search_path` y
 califica la tabla del trigger de Auth para que la creación de usuarios también
 funcione desde el servicio de autenticación.
 
+## RLS y vistas del dashboard
+
+Consulta [docs/supabase-dashboard.md](./docs/supabase-dashboard.md) para el
+inventario de políticas RLS y vistas SQL, su alcance y las diferencias
+verificadas con la guía inicial.
+
 ## Arquitectura acordada
 
 - `app/`: vistas, layouts y API Routes de Next.js (controladores HTTP)
