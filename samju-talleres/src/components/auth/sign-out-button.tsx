@@ -1,58 +1,37 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { LogOut, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { signOutAction } from "@/app/auth/actions";
 
 export function SignOutButton() {
-  const router = useRouter();
-  const [isSigningOut, setIsSigningOut] = useState(false);
-  const [error, setError] = useState("");
-
-  async function signOut() {
-    setIsSigningOut(true);
-    setError("");
-
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { error: signOutError } = await supabase.auth.signOut();
-
-      if (signOutError) throw signOutError;
-
-      router.replace("/login");
-      router.refresh();
-    } catch (signOutError) {
-      setError(
-        signOutError instanceof Error
-          ? signOutError.message
-          : "No se pudo cerrar la sesión.",
-      );
-      setIsSigningOut(false);
-    }
-  }
+  const [state, action] = useActionState(signOutAction, {});
 
   return (
-    <div className="flex flex-col items-end gap-2">
-      <Button
-        disabled={isSigningOut}
-        onClick={signOut}
-        type="button"
-        variant="outline"
-      >
-        {isSigningOut ? (
-          <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />
-        ) : (
-          <LogOut aria-hidden="true" size={16} />
-        )}
-        Cerrar sesión
-      </Button>
-      {error && (
+    <form action={action} className="flex flex-col items-end gap-2">
+      <SignOutSubmitButton />
+      {state.error && (
         <p className="max-w-56 text-right text-xs text-rose-foreground" role="alert">
-          {error}
+          {state.error}
         </p>
       )}
-    </div>
+    </form>
+  );
+}
+
+function SignOutSubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button disabled={pending} type="submit" variant="outline">
+      {pending ? (
+        <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />
+      ) : (
+        <LogOut aria-hidden="true" size={16} />
+      )}
+      Cerrar sesión
+    </Button>
   );
 }

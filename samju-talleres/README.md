@@ -57,9 +57,12 @@ handled by the root `proxy.ts`.
 
 ### Route access by profile role
 
-The Next.js 16 root `proxy.ts` refreshes the Supabase session and checks the
-active user's `profiles` row (`id`, `rol`, `activo`) before serving protected
-routes. Access is deny-by-default:
+The browser client is a singleton and Supabase SSR stores and refreshes the
+session through cookies. The Next.js 16 root `proxy.ts` refreshes the session
+and checks the active user's `profiles` row (`id`, `rol`, `activo`) before
+serving protected routes. Sign-out runs on the server, clears the local
+Supabase session, revalidates the app cache, and redirects to `/login`. Access
+is deny-by-default:
 
 - `admin`: dashboard, vehicles, work orders, and history
 - `recepcionista`: dashboard, vehicles, work orders, and history
