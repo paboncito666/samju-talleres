@@ -1,32 +1,41 @@
 import type { HTMLAttributes } from "react";
+import { ESTADOS, type EstadoOrden } from "@/lib/estados";
 import { cn } from "@/lib/utils";
 
-const variants = {
-  neutral: "bg-surface-muted text-foreground",
-  sage: "bg-sage text-sage-foreground",
-  blue: "bg-blue text-blue-foreground",
-  amber: "bg-amber text-amber-foreground",
-  rose: "bg-rose text-rose-foreground",
-  lavender: "bg-lavender text-lavender-foreground",
-} as const;
+type EstadoBadgeProps = {
+  estado: EstadoOrden;
+  variant?: never;
+};
 
-export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  variant?: keyof typeof variants;
-}
+type NeutralBadgeProps = {
+  estado?: never;
+  variant?: "neutral";
+};
+
+export type BadgeProps = HTMLAttributes<HTMLSpanElement> &
+  (EstadoBadgeProps | NeutralBadgeProps);
 
 export function Badge({
   className,
-  variant = "neutral",
+  estado,
+  variant,
+  children,
   ...props
 }: BadgeProps) {
+  const contenido = estado ? ESTADOS[estado].label : children;
+
   return (
     <span
       className={cn(
         "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
-        variants[variant],
+        estado ? ESTADOS[estado].clasesBadge : variant === "neutral" || !variant
+          ? "bg-surface-muted text-foreground"
+          : undefined,
         className,
       )}
       {...props}
-    />
+    >
+      {contenido}
+    </span>
   );
 }
