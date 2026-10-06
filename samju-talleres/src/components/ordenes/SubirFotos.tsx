@@ -353,7 +353,7 @@ export function SubirFotos({
                           ),
                         );
                       }}
-                      className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-surface-muted disabled:opacity-50"
+                      className="flex size-10 items-center justify-center rounded-md text-muted hover:bg-surface-muted disabled:opacity-50"
                     >
                       <RotateCcw aria-hidden="true" className="size-4" />
                     </button>
@@ -364,7 +364,7 @@ export function SubirFotos({
                       aria-label={`Quitar ${item.file.name}`}
                       disabled={subiendo}
                       onClick={() => quitarArchivo(item.id)}
-                      className="flex size-8 items-center justify-center rounded-md text-muted hover:bg-rose hover:text-rose-foreground disabled:opacity-50"
+                      className="flex size-10 items-center justify-center rounded-md text-muted hover:bg-rose hover:text-rose-foreground disabled:opacity-50"
                     >
                       <Trash2 aria-hidden="true" className="size-4" />
                     </button>

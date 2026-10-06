@@ -46,7 +46,7 @@ export function PaginacionVehiculos({
           aria-disabled={page <= 1}
           tabIndex={page <= 1 ? -1 : undefined}
           className={cn(
-            "inline-flex h-8 items-center justify-center rounded-lg border border-line bg-surface px-3 text-xs font-medium text-foreground transition-colors hover:bg-surface-muted",
+            "inline-flex h-10 items-center justify-center rounded-lg border border-line bg-surface px-3 text-xs font-medium text-foreground transition-colors hover:bg-surface-muted sm:h-8",
             page <= 1 && "pointer-events-none opacity-50",
           )}
         >
@@ -60,7 +60,7 @@ export function PaginacionVehiculos({
           aria-disabled={page >= totalPaginas}
           tabIndex={page >= totalPaginas ? -1 : undefined}
           className={cn(
-            "inline-flex h-8 items-center justify-center rounded-lg border border-line bg-surface px-3 text-xs font-medium text-foreground transition-colors hover:bg-surface-muted",
+            "inline-flex h-10 items-center justify-center rounded-lg border border-line bg-surface px-3 text-xs font-medium text-foreground transition-colors hover:bg-surface-muted sm:h-8",
             page >= totalPaginas && "pointer-events-none opacity-50",
           )}
         >

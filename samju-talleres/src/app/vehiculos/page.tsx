@@ -7,6 +7,12 @@ import { TablaOrdenes } from "@/components/vehiculos/TablaOrdenes";
 import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
 import { ESTADOS, type EstadoOrden } from "@/lib/estados";
 import { getMecanicos, getOrdenes } from "@/lib/data/ordenes";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Órdenes y vehículos",
+  description: "Busca y filtra las órdenes de trabajo y sus vehículos.",
+};
 
 interface VehiculosPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -65,7 +71,7 @@ export default async function VehiculosPage({
   );
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-6">
+    <main className="mx-auto flex min-w-0 max-w-7xl flex-col gap-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-ink">
@@ -75,7 +81,7 @@ export default async function VehiculosPage({
             Busca y filtra las órdenes de trabajo del taller.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <RealtimeRefresher tables={[{ table: "ordenes_trabajo" }]} />
           <Button
             disabled

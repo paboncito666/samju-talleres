@@ -122,7 +122,7 @@ export function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink/40 p-4 backdrop-blur-[2px] motion-safe:animate-[samju-modal-fade_160ms_ease-out]"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink/40 p-2 backdrop-blur-[2px] motion-safe:animate-[samju-modal-fade_160ms_ease-out] sm:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -142,7 +142,7 @@ export function Modal({
       <div
         ref={dialogRef}
         className={cn(
-          "my-auto flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-md motion-safe:animate-[samju-modal-enter_180ms_ease-out]",
+          "my-auto flex max-h-[calc(100dvh-1rem)] w-full min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-md motion-safe:animate-[samju-modal-enter_180ms_ease-out] sm:max-h-[calc(100dvh-2rem)]",
           sizes[size],
           className,
         )}
@@ -151,7 +151,7 @@ export function Modal({
         aria-labelledby={titleId}
         tabIndex={-1}
       >
-        <header className="flex items-center justify-between gap-4 border-b border-line px-6 py-4">
+        <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
           <h2 id={titleId} className="text-base font-semibold text-foreground">
             {title}
           </h2>
@@ -160,18 +160,21 @@ export function Modal({
             type="button"
             onClick={onClose}
             aria-label={closeLabel}
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink sm:size-8"
           >
             <X aria-hidden="true" className="size-4" />
           </button>
         </header>
         <div
-          className={cn("overflow-y-auto px-6 py-5", contentClassName)}
+          className={cn(
+            "min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5",
+            contentClassName,
+          )}
         >
           {children}
         </div>
         {footer && (
-          <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-6 py-4">
+          <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-4 py-3 sm:px-6 sm:py-4">
             {footer}
           </footer>
         )}

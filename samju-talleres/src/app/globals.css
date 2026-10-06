@@ -10,6 +10,7 @@
   --line: #e8e5e1;
   --muted: #625c55;
   --ink: #111113;
+  --focus-ring: var(--ink);
   --sage: #e8efe9;
   --sage-foreground: #3f5b48;
   --blue: #eaf0f5;
@@ -46,7 +47,7 @@
 }
 
 * {
-  scrollbar-color: #d6d2cc transparent;
+  scrollbar-color: var(--line) transparent;
   scrollbar-width: thin;
 }
 
@@ -58,22 +59,23 @@
 *::-webkit-scrollbar-thumb {
   border: 2px solid transparent;
   border-radius: 999px;
-  background: #d6d2cc;
+  background: var(--line);
   background-clip: padding-box;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #a9a39b;
+  background: var(--muted);
   background-clip: padding-box;
 }
 
 *:focus-visible {
-  outline: 2px solid #6b806f;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
 body {
   min-height: 100vh;
+  overflow-x: clip;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), Arial, sans-serif;

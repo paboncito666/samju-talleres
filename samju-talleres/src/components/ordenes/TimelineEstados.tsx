@@ -7,6 +7,17 @@ import {
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 
+const ringPorEstado: Record<EstadoOrden, string> = {
+  RECIBIDO: "ring-estado-recibido",
+  DIAGNOSTICO: "ring-estado-diagnostico",
+  PENDIENTE: "ring-estado-pendiente",
+  REPARACION: "ring-estado-reparacion",
+  CALIDAD: "ring-estado-calidad",
+  LISTO: "ring-estado-listo",
+  ENTREGADO: "ring-estado-entregado",
+  CANCELADO: "ring-estado-cancelado",
+};
+
 export interface TimelineEstadosProps {
   estado: EstadoOrden;
   motivoCancelacion?: string | null;
@@ -61,20 +72,14 @@ export function TimelineEstados({
                     completado &&
                       "border-ink bg-ink text-white",
                     actual &&
-                      "border-transparent font-semibold text-foreground ring-2 ring-offset-2 ring-offset-surface",
+                      cn(
+                        "border-transparent font-semibold text-foreground ring-2 ring-offset-2 ring-offset-surface",
+                        ESTADOS[paso].clasesBadge,
+                        ringPorEstado[paso],
+                      ),
                     !completado && !actual &&
                       "border-line bg-surface-muted text-muted",
-                    actual && {
-                      "ring-[#DCE6F2]": paso === "RECIBIDO",
-                      "ring-[#E6E0F3]": paso === "DIAGNOSTICO",
-                      "ring-[#F6EBC8]": paso === "PENDIENTE",
-                      "ring-[#F8DCCB]": paso === "REPARACION",
-                      "ring-[#D3EBE3]": paso === "CALIDAD",
-                      "ring-[#DDEBCF]": paso === "LISTO",
-                      "ring-[#E4E4E7]": paso === "ENTREGADO",
-                    },
                   )}
-                  style={actual ? { backgroundColor: ESTADOS[paso].color } : undefined}
                   aria-current={actual ? "step" : undefined}
                 >
                   {completado ? (
@@ -86,7 +91,9 @@ export function TimelineEstados({
                 <span
                   className={cn(
                     "pt-1 text-sm md:max-w-24 md:pt-0 md:text-xs",
-                    actual ? "font-semibold text-foreground" : "text-muted",
+                    actual
+                      ? cn("font-semibold", ESTADOS[paso].clasesBadge)
+                      : "text-muted",
                   )}
                 >
                   {ESTADOS[paso].label}

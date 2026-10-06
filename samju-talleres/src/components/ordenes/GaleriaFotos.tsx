@@ -120,7 +120,7 @@ export function GaleriaFotos({ ordenId }: GaleriaFotosProps) {
                         type="button"
                         onClick={() => setFotoActual(indice)}
                         aria-label={`Ver foto de ${etiqueta}, ${new Date(foto.creado_en).toLocaleDateString("es-CO")}`}
-                        className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-line bg-surface-muted text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+                        className="group relative aspect-[4/3] min-w-0 overflow-hidden rounded-lg border border-line bg-surface-muted text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
                       >
                         <Image
                           src={foto.url}
@@ -185,7 +185,7 @@ export function GaleriaFotos({ ordenId }: GaleriaFotosProps) {
                       (fotoActual! - 1 + fotos.length) % fotos.length,
                     )
                   }
-                  className="absolute left-3 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-foreground shadow-md hover:bg-surface"
+                  className="absolute left-2 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-foreground shadow-md hover:bg-surface sm:left-3"
                 >
                   <ChevronLeft aria-hidden="true" className="size-5" />
                 </button>
@@ -195,7 +195,7 @@ export function GaleriaFotos({ ordenId }: GaleriaFotosProps) {
                   onClick={() =>
                     setFotoActual((fotoActual! + 1) % fotos.length)
                   }
-                  className="absolute right-3 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-foreground shadow-md hover:bg-surface"
+                  className="absolute right-2 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-foreground shadow-md hover:bg-surface sm:right-3"
                 >
                   <ChevronRight aria-hidden="true" className="size-5" />
                 </button>

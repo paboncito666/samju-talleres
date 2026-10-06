@@ -17,6 +17,12 @@ import { NotasInternas } from "@/components/ordenes/NotasInternas";
 import { TimelineEstados } from "@/components/ordenes/TimelineEstados";
 import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
 import { getOrdenById } from "@/lib/data/ordenes";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Detalle de orden",
+  description: "Detalle, estado y seguimiento de una orden de trabajo.",
+};
 
 interface OrdenDetallePageProps {
   params: Promise<{ id: string }>;
@@ -54,7 +60,7 @@ export default async function OrdenDetallePage({
   );
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-6">
+    <main className="mx-auto flex min-w-0 max-w-7xl flex-col gap-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-sm text-muted">Orden de trabajo</p>
@@ -86,7 +92,7 @@ export default async function OrdenDetallePage({
         </div>
       </header>
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex min-w-0 flex-col gap-5">
           <TimelineEstados
             estado={orden.estado}
@@ -124,24 +130,26 @@ export default async function OrdenDetallePage({
                   {orden.trabajos_realizados.map((trabajo) => (
                     <li
                       key={trabajo.id}
-                      className="flex items-start gap-3 text-sm"
+                      className="text-sm"
                     >
-                      <input
-                        type="checkbox"
-                        checked={trabajo.completado}
-                        readOnly
-                        aria-label={`${trabajo.descripcion}: ${trabajo.completado ? "completado" : "pendiente"}`}
-                        className="mt-0.5 size-4 rounded border-line accent-ink"
-                      />
-                      <span
-                        className={
-                          trabajo.completado
-                            ? "text-muted line-through"
-                            : "text-foreground"
-                        }
-                      >
-                        {trabajo.descripcion}
-                      </span>
+                      <label className="flex min-h-10 cursor-default items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={trabajo.completado}
+                          readOnly
+                          aria-label={`${trabajo.descripcion}: ${trabajo.completado ? "completado" : "pendiente"}`}
+                          className="mt-2 size-5 shrink-0 rounded border-line accent-ink"
+                        />
+                        <span
+                          className={
+                            trabajo.completado
+                              ? "pt-2 text-muted line-through"
+                              : "pt-2 text-foreground"
+                          }
+                        >
+                          {trabajo.descripcion}
+                        </span>
+                      </label>
                     </li>
                   ))}
                 </ul>

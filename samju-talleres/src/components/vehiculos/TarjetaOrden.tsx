@@ -29,7 +29,7 @@ export function TarjetaOrden({ orden }: TarjetaOrdenProps) {
           <div className="min-w-0">
             <Link
               href={`/ordenes/${orden.id}`}
-              className="inline-flex items-center gap-1 font-semibold text-ink hover:underline"
+              className="inline-flex min-h-10 items-center gap-1 font-semibold text-ink hover:underline"
             >
               {orden.vehiculo.placa}
               <ArrowUpRight aria-hidden="true" className="size-3.5" />

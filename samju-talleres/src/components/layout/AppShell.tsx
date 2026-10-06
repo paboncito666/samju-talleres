@@ -38,7 +38,7 @@ export function AppShell({ children }: AppShellProps) {
             aria-current={activo ? "page" : undefined}
             onClick={() => setMenuAbierto(false)}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+              "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
               activo
                 ? "bg-surface-muted text-ink"
                 : "text-muted hover:bg-surface-muted hover:text-foreground",
@@ -75,7 +75,7 @@ export function AppShell({ children }: AppShellProps) {
           <button
             type="button"
             title="La sesión será conectada próximamente"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
+            className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted transition-colors hover:bg-surface-muted hover:text-foreground"
           >
             <LogOut aria-hidden="true" className="size-4" />
             Cerrar sesión
@@ -94,7 +94,7 @@ export function AppShell({ children }: AppShellProps) {
       <aside
         id="mobile-navigation"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-line bg-surface px-4 py-5 shadow-md transition-transform lg:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[calc(100vw-2rem)] flex-col border-r border-line bg-surface px-4 py-5 shadow-md transition-transform lg:hidden",
           menuAbierto ? "translate-x-0" : "-translate-x-full",
         )}
         aria-label="Menú móvil"
@@ -118,7 +118,7 @@ export function AppShell({ children }: AppShellProps) {
             type="button"
             aria-label="Cerrar menú"
             onClick={() => setMenuAbierto(false)}
-            className="flex size-9 items-center justify-center rounded-md text-muted hover:bg-surface-muted"
+            className="flex size-10 items-center justify-center rounded-md text-muted hover:bg-surface-muted"
           >
             <X aria-hidden="true" className="size-4" />
           </button>
@@ -127,7 +127,7 @@ export function AppShell({ children }: AppShellProps) {
         <button
           type="button"
           title="La sesión será conectada próximamente"
-          className="mt-auto flex items-center gap-3 rounded-lg border-t border-line px-3 py-4 text-sm text-muted"
+          className="mt-auto flex min-h-11 items-center gap-3 rounded-lg border-t border-line px-3 py-4 text-sm text-muted"
         >
           <LogOut aria-hidden="true" className="size-4" />
           Cerrar sesión
@@ -142,7 +142,7 @@ export function AppShell({ children }: AppShellProps) {
             aria-controls="mobile-navigation"
             aria-expanded={menuAbierto}
             onClick={() => setMenuAbierto((abierto) => !abierto)}
-            className="flex size-9 items-center justify-center rounded-lg text-muted hover:bg-surface-muted hover:text-foreground lg:hidden"
+            className="flex size-10 items-center justify-center rounded-lg text-muted hover:bg-surface-muted hover:text-foreground lg:hidden"
           >
             {menuAbierto ? (
               <X aria-hidden="true" className="size-5" />

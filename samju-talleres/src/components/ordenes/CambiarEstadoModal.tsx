@@ -89,6 +89,7 @@ export function CambiarEstadoModal({
         open={abierto}
         onClose={cerrar}
         title="Cambiar estado de la orden"
+        size="sm"
         footer={
           <>
             <Button

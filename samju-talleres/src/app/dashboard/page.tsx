@@ -20,6 +20,12 @@ import {
   getOrdenesPorEstado,
   getResumenDashboard,
 } from "@/lib/data/ordenes";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Resumen de la operación y carga de trabajo del taller.",
+};
 
 const kpis = [
   {
@@ -73,7 +79,7 @@ export default async function DashboardPage() {
   const resumen = resumenResultado.data;
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-8">
+    <main className="mx-auto flex min-w-0 max-w-7xl flex-col gap-8">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-ink">
@@ -113,7 +119,7 @@ export default async function DashboardPage() {
 
       <section
         aria-label="Gráficos del taller"
-        className="grid gap-5 xl:grid-cols-2"
+        className="grid min-w-0 gap-5 xl:grid-cols-2"
       >
         <OrdenesPorEstadoChart datos={ordenesResultado.data} />
         <CargaMecanicosChart datos={cargaResultado.data} />

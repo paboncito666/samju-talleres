@@ -38,25 +38,25 @@ export function OrdenesPorEstadoChart({
       </CardHeader>
       <CardContent>
         {hayDatos ? (
-          <div className="h-72 w-full" role="img" aria-label="Órdenes activas por estado">
+          <div className="h-72 w-full min-w-0" role="img" aria-label="Órdenes activas por estado">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
                 margin={{ top: 4, right: 8, left: -18, bottom: 40 }}
               >
-                <CartesianGrid stroke="#E8E5E1" vertical={false} />
+                <CartesianGrid stroke="var(--line)" vertical={false} />
                 <XAxis
                   dataKey="nombre"
                   angle={-25}
                   textAnchor="end"
                   interval={0}
-                  tick={{ fill: "#625C55", fontSize: 11 }}
+                  tick={{ fill: "var(--muted)", fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fill: "#625C55", fontSize: 12 }}
+                  tick={{ fill: "var(--muted)", fontSize: 12 }}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -65,7 +65,7 @@ export function OrdenesPorEstadoChart({
                   labelFormatter={(label) => `Estado: ${label}`}
                   contentStyle={{
                     borderRadius: 10,
-                    borderColor: "#E8E5E1",
+                    borderColor: "var(--line)",
                     fontSize: 12,
                   }}
                 />

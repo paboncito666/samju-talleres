@@ -22,8 +22,8 @@ export interface TablaOrdenesProps {
 export function TablaOrdenes({ ordenes }: TablaOrdenesProps) {
   return (
     <>
-      <div className="hidden overflow-hidden rounded-xl border border-line bg-surface shadow-sm md:block">
-        <table className="w-full border-collapse text-left text-sm">
+      <div className="hidden overflow-x-auto rounded-xl border border-line bg-surface shadow-sm md:block">
+        <table className="w-full min-w-[900px] border-collapse text-left text-sm">
           <thead className="bg-surface-muted text-xs font-medium uppercase tracking-wide text-muted">
             <tr>
               <th scope="col" className="px-4 py-3">Placa</th>
