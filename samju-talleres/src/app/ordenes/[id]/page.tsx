@@ -11,6 +11,7 @@ import {
 } from "@/components/ui";
 import { CambiarEstadoModal } from "@/components/ordenes/CambiarEstadoModal";
 import { ExportarPdf } from "@/components/ordenes/ExportarPdf";
+import { GaleriaFotos } from "@/components/ordenes/GaleriaFotos";
 import { HistorialEstados } from "@/components/ordenes/HistorialEstados";
 import { NotasInternas } from "@/components/ordenes/NotasInternas";
 import { TimelineEstados } from "@/components/ordenes/TimelineEstados";
@@ -212,17 +213,7 @@ export default async function OrdenDetallePage({
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Galería de fotos</CardTitle>
-              <CardDescription>Próximamente</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted">
-                La galería de fotos del vehículo se implementará próximamente.
-              </p>
-            </CardContent>
-          </Card>
+          <GaleriaFotos ordenId={orden.id} />
 
           <NotasInternas ordenId={orden.id} />
           <HistorialEstados ordenId={orden.id} />
