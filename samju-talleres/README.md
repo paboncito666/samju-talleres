@@ -16,6 +16,13 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Supabase
+
+Copy `.env.example` to `.env.local` and set the Supabase project URL and anon
+key. Use `src/lib/supabase/client.ts` in Client Components and
+`src/lib/supabase/server.ts` in Server Components, Route Handlers, or Server
+Actions. Never expose a `service_role` key to the browser.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
