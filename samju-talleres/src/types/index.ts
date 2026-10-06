@@ -129,6 +129,22 @@ export interface ResumenDashboard {
   ordenesEnReparacion: number;
 }
 
+export interface FiltrosOrdenes {
+  estado?: EstadoOrden;
+  mecanicoId?: string;
+  desde?: string;
+  hasta?: string;
+  q?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ResultadoListadoOrdenes {
+  data: OrdenConRelaciones[];
+  total: number;
+  error: Error | null;
+}
+
 export type ResultadoDatos<T> =
   | { data: T; error: null }
   | { data: null; error: Error };
