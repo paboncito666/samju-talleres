@@ -25,9 +25,35 @@ Actions. Never expose a `service_role` key to the browser.
 
 Email/password sign-up and sign-in are available at `/register` and `/login`.
 Configure email authentication in the Supabase dashboard. If email confirmation
-is enabled, add `http://localhost:3000/auth/callback` and the production
-callback URL to Supabase's allowed redirect URLs. Session refresh for protected
-routes is handled by the root `proxy.ts`.
+is enabled, allow `http://localhost:3000/auth/callback` and the production
+callback URL in Supabase's redirect URL settings.
+
+### Google OAuth
+
+Google sign-in is available from both `/login` and `/register`. The browser
+starts OAuth through `supabase.auth.signInWithOAuth`; Supabase returns to
+`/auth/callback`, where the authorization code is exchanged for a session.
+
+To enable it:
+
+1. In Google Cloud Console, create an OAuth client with type **Web application**.
+2. Add your app origins as authorized JavaScript origins (for local development,
+   `http://localhost:3000`).
+3. In the Google OAuth client, add the callback URI shown by Supabase under
+   **Authentication → Sign In / Providers → Google**. It is the Supabase Auth
+   callback URL (`https://<project-ref>.supabase.co/auth/v1/callback`), not the
+   Next.js `/auth/callback` URL.
+4. Enable Google under Supabase **Authentication → Sign In / Providers → Google**
+   and enter the Google Client ID and Client Secret there.
+5. In Supabase **Authentication → URL Configuration**, set the production site
+   URL and allow `http://localhost:3000/auth/callback` plus the deployed app's
+   `/auth/callback` URL. Add deployment preview callback URLs when testing
+   previews.
+
+The Google Client ID and Client Secret are configured in Supabase, not read by
+the Next.js application. Do not expose the Client Secret or a Supabase
+`service_role` key in client code. Session refresh for protected routes is
+handled by the root `proxy.ts`.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

@@ -296,7 +296,7 @@ export function AuthForm({ mode, initialError }: AuthFormProps) {
           ) : (
             <GoogleMark />
           )}
-          Google
+          Continuar con Google
         </Button>
 
         <p className="mt-6 text-center text-sm text-muted">
