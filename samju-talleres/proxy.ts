@@ -6,5 +6,10 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth/callback"],
+  matcher: [
+    "/dashboard/:path*",
+    "/vehiculos/:path*",
+    "/ordenes/:path*",
+    "/historial/:path*",
+  ],
 };
