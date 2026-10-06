@@ -16,6 +16,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PdfExportButton } from "@/app/components/pdf-export-button";
 
 const dateFormatter = new Intl.DateTimeFormat("es-MX", {
   day: "numeric",
@@ -120,6 +121,12 @@ export default async function VehicleHistoryPage({
 
   const trabajos = ordenes.flatMap((orden) => orden.trabajos_realizados ?? []);
   const fotos = ordenes.flatMap((orden) => orden.fotos_vehiculo ?? []);
+  const pdfDateFormatter = new Intl.DateTimeFormat("es-MX", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const safePlate = vehiculo.placa.replace(/[^a-zA-Z0-9-]/g, "-");
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-8 sm:py-10">
@@ -228,6 +235,67 @@ export default async function VehicleHistoryPage({
               <h2 className="mt-2 text-2xl font-semibold tracking-tight text-ink">
                 Órdenes cerradas
               </h2>
+              <div className="mt-4">
+                <PdfExportButton
+                  label="Exportar historial PDF"
+                  report={{
+                    kind: "history",
+                    fileName: `historial-${safePlate}.pdf`,
+                    vehicle: {
+                      make: vehiculo.marca,
+                      model: vehiculo.modelo,
+                      plate: vehiculo.placa,
+                      year: vehiculo.anio?.toString() ?? "",
+                      color: vehiculo.color ?? "",
+                      mileage:
+                        vehiculo.kilometraje === null
+                          ? ""
+                          : `${numberFormatter.format(
+                              vehiculo.kilometraje,
+                            )} km`,
+                      owner: vehiculo.propietario_nombre ?? "",
+                    },
+                    orders: ordenes.map((orden) => ({
+                      number: orden.id.toUpperCase(),
+                      status:
+                        orden.estado === "ENTREGADO"
+                          ? "Entregada"
+                          : "Cancelada",
+                      description: orden.descripcion_trabajo,
+                      serviceType:
+                        workTypeLabels[orden.tipo_servicio] ??
+                        orden.tipo_servicio,
+                      entryDate: formatDate(orden.fecha_ingreso),
+                      estimatedDate: formatDate(
+                        orden.fecha_estimada_entrega,
+                      ),
+                      closingDate: orden.fecha_entrega_real
+                        ? pdfDateFormatter.format(
+                            new Date(orden.fecha_entrega_real),
+                          )
+                        : "",
+                      mechanic: "",
+                      receptionist: "",
+                      observations: orden.observaciones ?? "",
+                      cancellationReason: orden.motivo_cancelacion ?? "",
+                      works: (orden.trabajos_realizados ?? []).map(
+                        (trabajo) => ({
+                          description: trabajo.descripcion,
+                          type:
+                            workTypeLabels[trabajo.tipo] ?? trabajo.tipo,
+                          completed: trabajo.completado,
+                          date: formatShortDate(trabajo.creado_en),
+                        }),
+                      ),
+                      photos: (orden.fotos_vehiculo ?? []).map((foto) => ({
+                        stage: foto.etapa,
+                        date: formatShortDate(foto.creado_en),
+                        url: isHttpUrl(foto.url) ? foto.url : null,
+                      })),
+                    })),
+                  }}
+                />
+              </div>
             </div>
             <p className="text-sm text-muted">
               {ordenes.length === 1

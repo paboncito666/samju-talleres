@@ -11,6 +11,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PdfExportButton } from "@/app/components/pdf-export-button";
 import { InternalNotes } from "./internal-notes";
 
 const dateFormatter = new Intl.DateTimeFormat("es-MX", {
@@ -51,6 +52,15 @@ function formatDate(value: string | null) {
   return value ? dateFormatter.format(new Date(value)) : "Pendiente";
 }
 
+function isHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export default async function WorkOrderDetailPage({
   params,
 }: {
@@ -60,7 +70,33 @@ export default async function WorkOrderDetailPage({
   const { data: orden, error: ordenError } = await supabase
     .from("ordenes_trabajo")
     .select(
-      "id, vehiculo_id, mecanico_id, recepcionista_id, estado, descripcion_trabajo, tipo_servicio, fecha_ingreso, fecha_estimada_entrega, fecha_entrega_real, observaciones, motivo_cancelacion",
+      `
+        id,
+        vehiculo_id,
+        mecanico_id,
+        recepcionista_id,
+        estado,
+        descripcion_trabajo,
+        tipo_servicio,
+        fecha_ingreso,
+        fecha_estimada_entrega,
+        fecha_entrega_real,
+        observaciones,
+        motivo_cancelacion,
+        trabajos_realizados (
+          id,
+          descripcion,
+          tipo,
+          completado,
+          creado_en
+        ),
+        fotos_vehiculo (
+          id,
+          url,
+          etapa,
+          creado_en
+        )
+      `,
     )
     .eq("id", params.ordenId)
     .maybeSingle();
@@ -110,6 +146,18 @@ export default async function WorkOrderDetailPage({
   const profileNames = new Map(
     (profilesResult.data ?? []).map((profile) => [profile.id, profile.nombre]),
   );
+  const mechanic = orden.mecanico_id
+    ? profileNames.get(orden.mecanico_id) ?? "Perfil no disponible"
+    : "Sin asignar";
+  const receptionist = orden.recepcionista_id
+    ? profileNames.get(orden.recepcionista_id) ?? "Perfil no disponible"
+    : "Sin asignar";
+  const pdfDateFormatter = new Intl.DateTimeFormat("es-MX", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const safePlate = vehicleResult.data.placa.replace(/[^a-zA-Z0-9-]/g, "-");
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-8 sm:py-10">
@@ -156,9 +204,70 @@ export default async function WorkOrderDetailPage({
                 {orden.id.slice(0, 8).toUpperCase()}
               </h1>
             </div>
-            <span className="rounded-full bg-mist px-3 py-1.5 text-xs font-semibold text-ink">
-              {statusLabels[orden.estado] ?? orden.estado}
-            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="rounded-full bg-mist px-3 py-1.5 text-xs font-semibold text-ink">
+                {statusLabels[orden.estado] ?? orden.estado}
+              </span>
+              <PdfExportButton
+                label="Exportar resumen PDF"
+                report={{
+                  kind: "order",
+                  fileName: `orden-${safePlate}-${orden.id
+                    .slice(0, 8)
+                    .toLowerCase()}.pdf`,
+                  vehicle: {
+                    make: vehicleResult.data.marca,
+                    model: vehicleResult.data.modelo,
+                    plate: vehicleResult.data.placa,
+                    year: vehicleResult.data.anio?.toString() ?? "",
+                    color: vehicleResult.data.color ?? "",
+                    mileage:
+                      vehicleResult.data.kilometraje === null
+                        ? ""
+                        : `${new Intl.NumberFormat("es-MX").format(
+                            vehicleResult.data.kilometraje,
+                          )} km`,
+                  },
+                  order: {
+                    number: orden.id.toUpperCase(),
+                    status: statusLabels[orden.estado] ?? orden.estado,
+                    description: orden.descripcion_trabajo,
+                    serviceType:
+                      workTypeLabels[orden.tipo_servicio] ??
+                      orden.tipo_servicio,
+                    entryDate: pdfDateFormatter.format(
+                      new Date(orden.fecha_ingreso),
+                    ),
+                    estimatedDate: formatDate(orden.fecha_estimada_entrega),
+                    closingDate: orden.fecha_entrega_real
+                      ? pdfDateFormatter.format(
+                          new Date(orden.fecha_entrega_real),
+                        )
+                      : "",
+                    mechanic,
+                    receptionist,
+                    observations: orden.observaciones ?? "",
+                    cancellationReason: orden.motivo_cancelacion ?? "",
+                    works: (orden.trabajos_realizados ?? []).map(
+                      (trabajo) => ({
+                        description: trabajo.descripcion,
+                        type:
+                          workTypeLabels[trabajo.tipo] ?? trabajo.tipo,
+                        completed: trabajo.completado,
+                        date: pdfDateFormatter.format(
+                          new Date(trabajo.creado_en),
+                        ),
+                      }),
+                    ),
+                    photos: (orden.fotos_vehiculo ?? []).map((foto) => ({
+                      stage: foto.etapa,
+                      date: pdfDateFormatter.format(new Date(foto.creado_en)),
+                      url: isHttpUrl(foto.url) ? foto.url : null,
+                    })),
+                  },
+                }}
+              />
+            </div>
           </div>
 
           <div className="mt-7 grid gap-6 border-t border-line pt-6 md:grid-cols-2">
@@ -241,10 +350,7 @@ export default async function WorkOrderDetailPage({
                     size={15}
                   />
                   Mecánico:{" "}
-                  {orden.mecanico_id
-                    ? profileNames.get(orden.mecanico_id) ??
-                      "Perfil no disponible"
-                    : "Sin asignar"}
+                  {mechanic}
                 </p>
                 <p className="flex items-center gap-2">
                   <UserRound
@@ -253,10 +359,7 @@ export default async function WorkOrderDetailPage({
                     size={15}
                   />
                   Recepcionista:{" "}
-                  {orden.recepcionista_id
-                    ? profileNames.get(orden.recepcionista_id) ??
-                      "Perfil no disponible"
-                    : "Sin asignar"}
+                  {receptionist}
                 </p>
               </div>
             </div>
