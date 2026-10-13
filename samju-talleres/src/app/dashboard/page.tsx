@@ -1,79 +1,132 @@
+import {
+  Activity,
+  ClipboardList,
+  Clock3,
+  Wrench,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui";
+import { CargaMecanicosChart } from "@/components/dashboard/CargaMecanicosChart";
+import { OrdenesPorEstadoChart } from "@/components/dashboard/OrdenesPorEstadoChart";
+import { TiempoReparacionChart } from "@/components/dashboard/TiempoReparacionChart";
+import { RealtimeRefresher } from "@/components/realtime/RealtimeRefresher";
+import {
+  getCargaMecanicos,
+  getOrdenesPorEstado,
+  getResumenDashboard,
+} from "@/lib/data/ordenes";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { Wrench } from "lucide-react";
-import { SignOutButton } from "@/components/auth/sign-out-button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Panel",
+  title: "Dashboard",
+  description: "Resumen de la operación y carga de trabajo del taller.",
 };
 
-export const dynamic = "force-dynamic";
+const kpis = [
+  {
+    clave: "ordenesActivas",
+    titulo: "Órdenes activas",
+    icono: ClipboardList,
+    sufijo: "",
+    descripcion: "Órdenes en curso",
+  },
+  {
+    clave: "listasParaEntrega",
+    titulo: "Listas para entrega",
+    icono: Activity,
+    sufijo: "",
+    descripcion: "Esperando al propietario",
+  },
+  {
+    clave: "promedioDiasReparacion",
+    titulo: "Promedio de reparación",
+    icono: Clock3,
+    sufijo: " días",
+    descripcion: "En órdenes entregadas",
+  },
+  {
+    clave: "ordenesEnReparacion",
+    titulo: "En reparación",
+    icono: Wrench,
+    sufijo: "",
+    descripcion: "Trabajo en curso",
+  },
+] as const;
 
 export default async function DashboardPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const [ordenesResultado, cargaResultado, resumenResultado] =
+    await Promise.all([
+      getOrdenesPorEstado(),
+      getCargaMecanicos(),
+      getResumenDashboard(),
+    ]);
 
-  if (error || !user) {
-    redirect("/login");
+  if (ordenesResultado.error) {
+    throw ordenesResultado.error;
+  }
+  if (cargaResultado.error) {
+    throw cargaResultado.error;
+  }
+  if (resumenResultado.error) {
+    throw resumenResultado.error;
   }
 
-  const fullName = user.user_metadata.full_name;
-  const displayName =
-    typeof fullName === "string" && fullName.trim()
-      ? fullName.trim()
-      : user.email;
+  const resumen = resumenResultado.data;
 
   return (
-    <main className="min-h-screen px-5 py-8 sm:px-8 sm:py-10">
-      <div className="mx-auto max-w-5xl">
-        <header className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-ink text-white">
-              <Wrench aria-hidden="true" size={19} strokeWidth={1.8} />
-            </span>
-            <span>
-              <span className="block text-sm font-semibold tracking-[0.12em] text-ink">
-                SAMJU
-              </span>
-              <span className="block text-xs text-muted">Talleres</span>
-            </span>
-          </div>
-          <SignOutButton />
-        </header>
-
-        <section className="mt-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            Espacio de trabajo
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-            Hola, {displayName}
+    <main className="mx-auto flex min-w-0 max-w-7xl flex-col gap-8">
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">
+            Dashboard
           </h1>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-muted">
-            Tu sesión está activa. El panel de gestión del taller estará
-            disponible aquí.
+          <p className="mt-1 text-sm text-muted">
+            Resumen general de la operación del taller.
           </p>
+        </div>
+        <RealtimeRefresher tables={[{ table: "ordenes_trabajo" }]} />
+      </header>
 
-          <Card className="mt-10 max-w-2xl">
-            <CardHeader>
-              <CardTitle>Bienvenido a SAMJU Talleres</CardTitle>
-              <CardDescription>
-                Este espacio está reservado para el equipo del taller.
-              </CardDescription>
+      <section
+        aria-label="Indicadores principales"
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      >
+        {kpis.map(({ clave, titulo, icono: Icon, sufijo, descripcion }) => (
+          <Card key={clave}>
+            <CardHeader className="flex-row items-start justify-between space-y-0 pb-2">
+              <div className="space-y-1">
+                <CardDescription>{titulo}</CardDescription>
+                <CardTitle className="text-2xl">
+                  {resumen[clave]}
+                  {sufijo}
+                </CardTitle>
+              </div>
+              <span className="flex size-9 items-center justify-center rounded-lg bg-surface-muted text-muted">
+                <Icon aria-hidden="true" className="size-4" />
+              </span>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted">
-                Sesión iniciada como{" "}
-                <span className="font-medium text-foreground">{user.email}</span>
-              </p>
+              <p className="text-xs text-muted">{descripcion}</p>
             </CardContent>
           </Card>
-        </section>
-      </div>
+        ))}
+      </section>
+
+      <section
+        aria-label="Gráficos del taller"
+        className="grid min-w-0 gap-5 xl:grid-cols-2"
+      >
+        <OrdenesPorEstadoChart datos={ordenesResultado.data} />
+        <CargaMecanicosChart datos={cargaResultado.data} />
+        <div className="xl:col-span-2">
+          <TiempoReparacionChart datos={cargaResultado.data} />
+        </div>
+      </section>
     </main>
   );
 }
