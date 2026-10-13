@@ -25,7 +25,7 @@ function SignOutSubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button disabled={pending} type="submit" variant="outline">
+    <Button disabled={pending} type="submit" variant="secondary">
       {pending ? (
         <LoaderCircle aria-hidden="true" className="animate-spin" size={16} />
       ) : (

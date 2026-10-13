@@ -304,7 +304,7 @@ export function AuthForm({ mode, initialError, returnTo }: AuthFormProps) {
           className="w-full"
           disabled={isSubmitting || isGoogleLoading}
           onClick={signInWithGoogle}
-          variant="outline"
+          variant="secondary"
         >
           {isGoogleLoading ? (
             <LoaderCircle aria-hidden="true" className="animate-spin" size={17} />
