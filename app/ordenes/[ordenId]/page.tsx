@@ -12,7 +12,15 @@ import {
 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PdfExportButton } from "@/app/components/pdf-export-button";
+import { PhotoUpload } from "@/app/components/ordenes/photo-upload";
+import { PhotoGallery } from "@/app/components/ordenes/photo-gallery";
+import { StatusControls } from "@/app/components/ordenes/status-controls";
+import { RealtimeRefresher } from "@/app/components/realtime/realtime-refresher";
+import { resolveVehiclePhotoUrls } from "@/lib/storage/photos";
+import type { WorkOrderStatus } from "@/lib/validations/api";
 import { InternalNotes } from "./internal-notes";
+
+export const dynamic = "force-dynamic";
 
 const dateFormatter = new Intl.DateTimeFormat("es-MX", {
   day: "numeric",
@@ -78,6 +86,7 @@ export default async function WorkOrderDetailPage({
         estado,
         descripcion_trabajo,
         tipo_servicio,
+        diagnostico,
         fecha_ingreso,
         fecha_estimada_entrega,
         fecha_entrega_real,
@@ -95,6 +104,13 @@ export default async function WorkOrderDetailPage({
           url,
           etapa,
           creado_en
+        ),
+        historial_estados (
+          id,
+          estado_anterior,
+          estado_nuevo,
+          motivo,
+          creado_en
         )
       `,
     )
@@ -106,6 +122,7 @@ export default async function WorkOrderDetailPage({
   }
 
   if (!orden) notFound();
+  const fotosFirmadas = await resolveVehiclePhotoUrls(orden.fotos_vehiculo ?? []);
 
   const assignedProfileIds = [
     orden.mecanico_id,
@@ -173,6 +190,7 @@ export default async function WorkOrderDetailPage({
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-8 sm:py-10">
+      <RealtimeRefresher tables={["ordenes_trabajo", "historial_estados", "fotos_vehiculo"]} />
       <div className="mx-auto max-w-6xl">
         <header className="flex items-center justify-between border-b border-line pb-5">
           <Link
@@ -244,6 +262,7 @@ export default async function WorkOrderDetailPage({
                     number: orden.id.toUpperCase(),
                     status: statusLabels[orden.estado] ?? orden.estado,
                     description: orden.descripcion_trabajo,
+                    diagnosis: orden.diagnostico ?? "",
                     serviceType:
                       workTypeLabels[orden.tipo_servicio] ??
                       orden.tipo_servicio,
@@ -271,7 +290,7 @@ export default async function WorkOrderDetailPage({
                         ),
                       }),
                     ),
-                    photos: (orden.fotos_vehiculo ?? []).map((foto) => ({
+                    photos: fotosFirmadas.map((foto) => ({
                       stage: foto.etapa,
                       date: pdfDateFormatter.format(new Date(foto.creado_en)),
                       url: isHttpUrl(foto.url) ? foto.url : null,
@@ -397,7 +416,56 @@ export default async function WorkOrderDetailPage({
                 </p>
               </div>
             )}
+
+            {orden.diagnostico && (
+              <div className="md:col-span-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                  Diagnóstico técnico
+                </p>
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-ink">
+                  {orden.diagnostico}
+                </p>
+              </div>
+            )}
           </div>
+        </section>
+
+        <section className="mt-6 grid gap-5 lg:grid-cols-2">
+          <StatusControls
+            currentStatus={orden.estado as WorkOrderStatus}
+            initialDiagnosis={orden.diagnostico ?? ""}
+            orderId={orden.id}
+          />
+          <PhotoUpload orderId={orden.id} />
+        </section>
+        <section className="mt-5">
+          <PhotoGallery photos={fotosFirmadas} />
+        </section>
+
+        <section className="mt-8 rounded-2xl border border-line bg-white p-5 shadow-soft">
+          <h2 className="text-sm font-semibold text-ink">Historial de estados</h2>
+          {(orden.historial_estados ?? []).length === 0 ? (
+            <p className="mt-3 text-sm text-muted">Aún no hay cambios registrados.</p>
+          ) : (
+            <ol className="mt-4 space-y-3">
+              {[...(orden.historial_estados ?? [])]
+                .sort((a, b) => b.creado_en.localeCompare(a.creado_en))
+                .map((event) => (
+                  <li className="flex gap-3 border-l-2 border-line pl-4" key={event.id}>
+                    <div>
+                      <p className="text-sm font-medium text-ink">
+                        {event.estado_anterior ? `${statusLabels[event.estado_anterior] ?? event.estado_anterior} → ` : ""}
+                        {statusLabels[event.estado_nuevo] ?? event.estado_nuevo}
+                      </p>
+                      {event.motivo && <p className="mt-1 text-sm text-muted">{event.motivo}</p>}
+                      <time className="mt-1 block text-xs text-muted" dateTime={event.creado_en}>
+                        {dateTimeFormatter.format(new Date(event.creado_en))}
+                      </time>
+                    </div>
+                  </li>
+                ))}
+            </ol>
+          )}
         </section>
 
         <section className="py-8 sm:py-10">

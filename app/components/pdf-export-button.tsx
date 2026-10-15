@@ -29,6 +29,7 @@ type PdfOrderSummary = {
   number: string;
   status: string;
   description: string;
+  diagnosis: string;
   serviceType: string;
   entryDate: string;
   estimatedDate: string;
@@ -163,6 +164,7 @@ export function PdfExportButton({
         addParagraph("Orden", order.number);
         addParagraph("Estado", order.status);
         addParagraph("Servicio solicitado", order.description);
+        if (order.diagnosis) addParagraph("Diagnóstico técnico", order.diagnosis);
         addParagraph("Tipo de servicio", order.serviceType);
         addParagraph("Fecha de ingreso", order.entryDate);
         if (order.estimatedDate) {

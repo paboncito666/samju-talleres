@@ -1,159 +1,98 @@
-# Políticas RLS y vistas del dashboard
+# Esquema, seguridad y dashboard de Supabase
 
-Este documento describe las políticas y vistas del proyecto Supabase
-`samju-talleres`. La definición desplegada se contrastó con `pg_policies` y
-`pg_views` el 6 de octubre de 2026. Las políticas de `profiles` reflejan la
-migración `20261006100000_secure_profile_policies.sql`; las restantes vienen
-del SQL de configuración inicial.
+La definición de base de datos mantenida por el repositorio está en
+`supabase/migrations/`. Debe aplicarse en un proyecto Supabase de desarrollo y
+validarse contra el esquema desplegado antes de producción. Estas migraciones
+no se ejecutan automáticamente al desplegar Next.js en Vercel.
 
-## Row Level Security
+## Orden de aplicación
 
-RLS está habilitado en las ocho tablas públicas. Supabase evalúa RLS en cada
-consulta; las comprobaciones de la interfaz no sustituyen estas políticas.
-`auth.uid()` identifica al usuario autenticado y su rol funcional se lee de
-`profiles.rol`.
+Ejecuta los archivos en orden cronológico desde el SQL Editor de Supabase o con
+la herramienta de migraciones elegida por el equipo:
 
-| Tabla | Política y operación | Regla |
+1. `20261006090000_initial_schema.sql`: tablas, estados, índices, funciones,
+   triggers, RLS, políticas, vistas y bucket privado para fotos.
+2. `20261006100000_secure_profile_policies.sql`: limita las columnas de perfil
+   que una persona puede modificar.
+3. `20261006102000_fix_auth_profile_trigger.sql`: endurece la función que
+   crea un perfil al registrar un usuario.
+4. `20261013110000_add_order_diagnostico.sql`: agrega de forma incremental el
+   diagnóstico opcional que usa el detalle y las transiciones de órdenes.
+5. `20261015120000_fix_order_history_and_photo_rls.sql`: define funciones de
+   autorización compatibles con el enum de roles desplegado, reemplaza las
+   políticas antiguas de órdenes, retira el trigger legado que insertaba en el
+   historial sin permisos, corrige el registro de estados y el acceso a fotos,
+   y añade las tablas operativas a `supabase_realtime` si existe la publicación.
+
+La primera migración es idempotente para las tablas y objetos que declara y
+añade `diagnostico` si falta. Si el proyecto ya tiene un esquema distinto,
+compara primero las definiciones; no ejecutes cambios de esquema a ciegas en
+producción.
+
+Si el proyecto ya tiene las tablas y políticas pero el detalle informa que
+falta `ordenes_trabajo.diagnostico`, aplica únicamente la cuarta migración
+desde el SQL Editor de Supabase. No es necesario volver a ejecutar la migración
+inicial para resolver esa columna faltante.
+
+## Tablas y reglas de acceso
+
+RLS queda habilitado en las ocho tablas públicas. La función
+`active_profile_role()` devuelve como texto el rol del perfil activo para no
+depender de un nombre concreto del tipo enum de roles (`rol_personal` o
+`rol_usuario`). `can_access_order()` centraliza el acceso por rol y asignación.
+
+| Tabla | Lectura | Escritura |
 | --- | --- | --- |
-| `profiles` | `Leer perfiles autenticado` — `SELECT` | Cualquier usuario autenticado puede consultar los perfiles. No hay lectura para `anon`. |
-| `profiles` | `Editar perfil propio` — `UPDATE` | Solo puede modificar su propia fila (`id = auth.uid()`). Los permisos SQL limitan las columnas modificables a `nombre` y `avatar_url`; no puede cambiar `rol`, `activo` ni `id`. |
-| `vehiculos` | `Insertar vehiculo admin recep` — `INSERT` | Solo los perfiles con rol `admin` o `recepcionista` pueden insertar vehículos. |
-| `ordenes_trabajo` | `Leer ordenes autenticado` — `SELECT` | Todo usuario autenticado puede leer las órdenes. |
-| `ordenes_trabajo` | `Actualizar orden asignada` — `UPDATE` | El mecánico o recepcionista asignado, o un administrador, puede actualizar la orden. |
-| `ordenes_trabajo` | `Admin control total ordenes` — `ALL` | Los administradores pueden ejecutar todas las operaciones sobre órdenes. |
-| `trabajos_realizados` | `Staff acceso trabajos_realizados` — `ALL` | Acceso de lectura y escritura para usuarios autenticados. |
-| `fotos_vehiculo` | `Staff acceso fotos_vehiculo` — `ALL` | Acceso de lectura y escritura para usuarios autenticados. |
-| `historial_estados` | `Staff lectura historial_estados` — `SELECT` | Los usuarios autenticados pueden consultar el historial; esta política no concede escritura. |
-| `notas_internas` | `Staff acceso notas_internas` — `ALL` | Acceso de lectura y escritura para usuarios autenticados. |
-| `repuestos_orden` | `Staff acceso repuestos_orden` — `ALL` | Acceso de lectura y escritura para usuarios autenticados. |
+| `profiles` | Personal autenticado | Solo la propia fila; las concesiones SQL limitan la modificación a `nombre` y `avatar_url`. |
+| `vehiculos` | Personal con perfil activo | `admin` y `recepcionista`; placa única. |
+| `ordenes_trabajo` | `admin`/`recepcionista` leen todas; `mecanico` solo sus órdenes asignadas | Recepción/admin crean; personal autorizado actualiza; trigger valida transición y exige diagnóstico para calidad/cierre. |
+| `trabajos_realizados` | Personal activo | Personal autenticado puede registrar/actualizar trabajos; solo `admin` puede eliminarlos. |
+| `fotos_vehiculo` | Personal activo | Solo se pueden registrar fotos asociadas a la sesión; eliminación de metadatos reservada a `admin`. |
+| `historial_estados` | Personal activo | Solo lo escribe el trigger de cambio de estado. |
+| `notas_internas` | Personal activo | Personal crea notas con su propio `autor_id`; el autor o `admin` puede eliminarlas. |
+| `repuestos_orden` | Personal activo | Personal autenticado puede gestionar conceptos. |
 
-Las políticas originales de las tablas relacionadas están declaradas para el
-rol PostgreSQL `public`, pero condicionan `USING` y `WITH CHECK` a
-`auth.role() = 'authenticated'`. En la política de órdenes, la condición de
-`UPDATE` limita tanto qué filas pueden modificarse como el estado de la fila
-resultante.
+Las API Routes repiten autenticación y validación Zod; RLS y triggers siguen
+siendo la protección final para solicitudes directas a Supabase. Los cambios de
+estado válidos son:
 
-### Diferencia con la guía inicial
+`RECIBIDO → DIAGNOSTICO → PENDIENTE → REPARACION → CALIDAD → LISTO → ENTREGADO`
 
-La guía incluía una política para leer vehículos desde la aplicación. Al
-consultar `pg_policies` en el proyecto desplegado no se encontró esa política:
-solo aparece la de inserción. Por tanto, **un usuario autenticado no tiene
-actualmente acceso RLS de lectura a `vehiculos`**. Las pantallas que consultan
-la tabla pueden fallar aunque la guía inicial dijera lo contrario. Si el equipo
-quiere habilitar esa lectura, debe añadirse una política explícita, por ejemplo:
+`CANCELADO` solo se permite desde `PENDIENTE` o `CALIDAD`. La base de datos
+rechaza otras transiciones, cancelaciones sin motivo y pasos a control de
+calidad o cierre sin diagnóstico.
 
-```sql
-CREATE POLICY "Leer vehiculos autenticado"
-  ON public.vehiculos
-  FOR SELECT
-  TO authenticated
-  USING (true);
-```
+## Fotos privadas y Realtime
 
-No se añadió automáticamente porque el acceso a la lista completa de vehículos
-es una decisión de autorización y conviene confirmarla con el responsable del
-proyecto.
+La migración crea el bucket privado `fotos-vehiculos`, limita las imágenes a
+JPG/PNG/WebP de hasta 5 MB y autoriza el acceso según la orden y el perfil. La
+aplicación conserva la ruta del objeto, no una URL pública; las vistas generan
+URL firmadas temporales para mostrarla.
+
+Para que las actualizaciones en vivo funcionen, habilita en Supabase Realtime
+la publicación de `ordenes_trabajo`, `historial_estados` y `fotos_vehiculo`.
+La migración correctiva intenta añadirlas a `supabase_realtime` cuando esa
+publicación existe. Verifica el estado en el panel del proyecto después de
+aplicar el SQL.
 
 ## Vistas SQL
 
-Las dos vistas siguientes existen en `public` en Supabase y están destinadas a
-los resúmenes del dashboard. Actualmente la interfaz del repositorio todavía no
-consulta estas vistas.
+Las vistas son `security_invoker`, siguen los permisos/RLS del usuario y no
+están disponibles para `anon`.
 
 ### `v_ordenes_activas`
 
-Una fila por orden cuyo estado no sea `ENTREGADO` ni `CANCELADO`. Combina la
-orden con su vehículo y el perfil del mecánico asignado (si existe).
-
-| Columna | Origen / significado |
-| --- | --- |
-| `id` | `ordenes_trabajo.id` |
-| `placa`, `marca`, `modelo` | Identificación del vehículo |
-| `mecanico` | `profiles.nombre`; puede ser `NULL` si no hay mecánico asignado |
-| `estado` | Estado actual de la orden |
-| `descripcion_trabajo` | Servicio solicitado |
-| `fecha_ingreso`, `fecha_estimada_entrega` | Fechas de la orden |
-| `dias_en_taller` | Días transcurridos entre `fecha_ingreso` y `now()` |
-
-La vista omite vehículos sin una orden activa; usa `LEFT JOIN` para que la
-ausencia de mecánico no oculte una orden.
-
-```sql
-CREATE OR REPLACE VIEW public.v_ordenes_activas AS
-SELECT
-  o.id,
-  v.placa,
-  v.marca,
-  v.modelo,
-  p.nombre AS mecanico,
-  o.estado,
-  o.descripcion_trabajo,
-  o.fecha_ingreso,
-  o.fecha_estimada_entrega,
-  EXTRACT(DAY FROM NOW() - o.fecha_ingreso) AS dias_en_taller
-FROM public.ordenes_trabajo AS o
-JOIN public.vehiculos AS v ON v.id = o.vehiculo_id
-LEFT JOIN public.profiles AS p ON p.id = o.mecanico_id
-WHERE o.estado NOT IN ('ENTREGADO', 'CANCELADO');
-```
+Una fila por orden no entregada ni cancelada, con placa, marca, modelo,
+mecánico, estado, fechas y días en el taller.
 
 ### `v_carga_mecanicos`
 
-Una fila por mecánico activo. Resume sus órdenes relacionadas:
+Una fila por mecánico activo con órdenes en reparación, órdenes activas y
+promedio de días entre ingreso y entrega. El dashboard actual calcula sus
+gráficas a partir de órdenes visibles para la sesión para respetar el alcance
+de lectura de cada rol.
 
-| Columna | Significado |
-| --- | --- |
-| `mecanico` | Nombre del perfil |
-| `en_reparacion` | Órdenes en estado `REPARACION` |
-| `total_activos` | Órdenes que no están `ENTREGADO` ni `CANCELADO` |
-| `promedio_dias` | Promedio de días entre ingreso y entrega para órdenes `ENTREGADO` |
-
-El `LEFT JOIN` conserva mecánicos activos sin órdenes; los conteos pueden ser
-cero y el promedio `NULL` cuando no hay órdenes entregadas.
-
-```sql
-CREATE OR REPLACE VIEW public.v_carga_mecanicos AS
-SELECT
-  p.nombre AS mecanico,
-  COUNT(*) FILTER (WHERE o.estado = 'REPARACION') AS en_reparacion,
-  COUNT(*) FILTER (
-    WHERE o.estado NOT IN ('ENTREGADO', 'CANCELADO')
-  ) AS total_activos,
-  ROUND(
-    AVG(EXTRACT(DAY FROM o.fecha_entrega_real - o.fecha_ingreso))
-      FILTER (WHERE o.estado = 'ENTREGADO'),
-    1
-  ) AS promedio_dias
-FROM public.profiles AS p
-LEFT JOIN public.ordenes_trabajo AS o ON o.mecanico_id = p.id
-WHERE p.rol = 'mecanico' AND p.activo = TRUE
-GROUP BY p.id, p.nombre;
-```
-
-## Consideraciones de seguridad de las vistas
-
-Se verificó que ambas vistas tienen `security_invoker=true`, de modo que usan los
-permisos y las políticas RLS del usuario que consulta. También tienen `SELECT`
-concedido a `anon` y `authenticated`. Las políticas de las tablas relacionadas
-condicionan el acceso a `auth.role() = 'authenticated'`, pero es preferible no
-publicar estas vistas al rol anónimo. Para limitar el privilegio a personal
-autenticado:
-
-```sql
-REVOKE ALL ON public.v_ordenes_activas, public.v_carga_mecanicos FROM anon;
-GRANT SELECT ON public.v_ordenes_activas, public.v_carga_mecanicos
-  TO authenticated;
-```
-
-Esta restricción aún no se aplicó. Además, al faltar la política de lectura de
-`vehiculos`, un usuario autenticado no puede leer filas base de esa tabla; por
-lo tanto, `v_ordenes_activas` no podrá devolver órdenes con la configuración
-RLS actual. Resolverlo requiere aprobar y crear la política de lectura
-documentada arriba, o revisar el diseño de autorización de la vista.
-
-## Consultas de verificación
-
-Para comparar las políticas desplegadas:
+## Verificación en Supabase
 
 ```sql
 SELECT tablename, policyname, cmd, roles, qual, with_check
@@ -161,8 +100,6 @@ FROM pg_policies
 WHERE schemaname = 'public'
 ORDER BY tablename, policyname;
 ```
-
-Para comprobar las definiciones de vistas:
 
 ```sql
 SELECT viewname, definition
