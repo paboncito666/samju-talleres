@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     default: "SAMJU Talleres",
     template: "%s | SAMJU Talleres",
   },
-  description: "Plataforma interna para la gestión de SAMJU Talleres.",
+  description: "Plataforma interna para la gestión de órdenes y vehículos de SAMJU Talleres.",
 };
 
 export default function RootLayout({

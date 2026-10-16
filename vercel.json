@@ -1,10 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "services": {
-    "app": {
-      "root": ".",
-      "framework": "nextjs"
-    },
     "samju-talleres": {
       "root": "samju-talleres",
       "framework": "nextjs"

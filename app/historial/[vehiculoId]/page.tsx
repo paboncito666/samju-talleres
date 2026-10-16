@@ -17,6 +17,10 @@ import {
 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PdfExportButton } from "@/app/components/pdf-export-button";
+import { resolveVehiclePhotoUrls } from "@/lib/storage/photos";
+import { RealtimeRefresher } from "@/app/components/realtime/realtime-refresher";
+
+export const dynamic = "force-dynamic";
 
 const dateFormatter = new Intl.DateTimeFormat("es-MX", {
   day: "numeric",
@@ -87,6 +91,7 @@ export default async function VehicleHistoryPage({
         id,
         estado,
         descripcion_trabajo,
+        diagnostico,
         tipo_servicio,
         fecha_ingreso,
         fecha_estimada_entrega,
@@ -119,8 +124,14 @@ export default async function VehicleHistoryPage({
     );
   }
 
-  const trabajos = ordenes.flatMap((orden) => orden.trabajos_realizados ?? []);
-  const fotos = ordenes.flatMap((orden) => orden.fotos_vehiculo ?? []);
+  const ordenesVista = await Promise.all(
+    ordenes.map(async (orden) => ({
+      ...orden,
+      fotos_vehiculo: await resolveVehiclePhotoUrls(orden.fotos_vehiculo ?? []),
+    })),
+  );
+  const trabajos = ordenesVista.flatMap((orden) => orden.trabajos_realizados ?? []);
+  const fotos = ordenesVista.flatMap((orden) => orden.fotos_vehiculo ?? []);
   const pdfDateFormatter = new Intl.DateTimeFormat("es-MX", {
     day: "numeric",
     month: "long",
@@ -130,6 +141,7 @@ export default async function VehicleHistoryPage({
 
   return (
     <main className="min-h-screen px-4 py-6 sm:px-8 sm:py-10">
+      <RealtimeRefresher tables={["ordenes_trabajo", "historial_estados", "fotos_vehiculo"]} />
       <div className="mx-auto max-w-6xl">
         <header className="flex items-center justify-between border-b border-line pb-5">
           <Link
@@ -206,7 +218,7 @@ export default async function VehicleHistoryPage({
           </div>
           <div className="grid grid-cols-3 border-t border-white/10">
             <div className="px-4 py-4 sm:px-8">
-              <p className="text-2xl font-semibold">{ordenes.length}</p>
+              <p className="text-2xl font-semibold">{ordenesVista.length}</p>
               <p className="mt-1 text-xs text-white/60 sm:text-sm">
                 Órdenes cerradas
               </p>
@@ -255,13 +267,14 @@ export default async function VehicleHistoryPage({
                             )} km`,
                       owner: vehiculo.propietario_nombre ?? "",
                     },
-                    orders: ordenes.map((orden) => ({
+                    orders: ordenesVista.map((orden) => ({
                       number: orden.id.toUpperCase(),
                       status:
                         orden.estado === "ENTREGADO"
                           ? "Entregada"
                           : "Cancelada",
                       description: orden.descripcion_trabajo,
+                      diagnosis: orden.diagnostico ?? "",
                       serviceType:
                         workTypeLabels[orden.tipo_servicio] ??
                         orden.tipo_servicio,
@@ -298,13 +311,13 @@ export default async function VehicleHistoryPage({
               </div>
             </div>
             <p className="text-sm text-muted">
-              {ordenes.length === 1
+              {ordenesVista.length === 1
                 ? "1 servicio en el historial"
-                : `${ordenes.length} servicios en el historial`}
+                : `${ordenesVista.length} servicios en el historial`}
             </p>
           </div>
 
-          {ordenes.length === 0 ? (
+          {ordenesVista.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-line bg-white px-6 py-14 text-center">
               <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-mist text-muted">
                 <FileClock aria-hidden="true" size={22} />
@@ -319,7 +332,7 @@ export default async function VehicleHistoryPage({
             </div>
           ) : (
             <div className="space-y-5">
-              {ordenes.map((orden) => {
+              {ordenesVista.map((orden) => {
                 const ordenTrabajos = orden.trabajos_realizados ?? [];
                 const ordenFotos = orden.fotos_vehiculo ?? [];
                 const entregada = orden.estado === "ENTREGADO";

@@ -1,49 +1,59 @@
 # SAMJU Talleres
 
-Aplicación web de uso interno para el personal del taller. Los clientes no
-acceden a esta plataforma.
+Aplicación web para uso interno del administrador, recepción y mecánicos del
+taller. Los clientes no acceden a la plataforma. La aplicación canónica está
+en la raíz del repositorio y utiliza Next.js 14 App Router, React, TypeScript,
+Tailwind CSS y Supabase.
 
-## Requisitos
+## Inicio local
 
-- Node.js 20 o superior
-- npm
-- Proyecto Supabase para las funcionalidades que requieran acceso a datos
+Requisitos: Node.js 20 o superior, npm y un proyecto Supabase.
 
-## Configuración local
+```powershell
+npm ci
+Copy-Item .env.example .env.local
+```
 
-1. Instala las dependencias:
+Completa en `.env.local` `NEXT_PUBLIC_SUPABASE_URL` y
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`. La `SUPABASE_SERVICE_ROLE_KEY` se requiere
+únicamente para el seed local; nunca la expongas al navegador ni la subas a Git.
+Las credenciales OAuth de Google se configuran en el proveedor Google de
+Supabase. Después:
 
-   ```bash
-   npm install
-   ```
+```powershell
+npm run dev
+```
 
-2. Configura `.env.local` con la URL y la clave pública del proyecto Supabase.
-   Añade `SUPABASE_SERVICE_ROLE_KEY` solo si ejecutarás el seed; se usa
-   únicamente en scripts del servidor. Nunca expongas esa clave al cliente ni
-   la subas al repositorio.
-3. Inicia el servidor de desarrollo:
-
-   ```bash
-   npm run dev
-   ```
-
-Abre [http://localhost:3000](http://localhost:3000).
+Visita `http://localhost:3000`.
 
 ## Comandos
 
-- `npm run dev`: servidor local
-- `npm run lint`: ESLint
-- `npm run typecheck`: comprobación TypeScript
-- `npm run build`: build de producción
+| Comando | Función |
+| --- | --- |
+| `npm run dev` | Desarrollo local |
+| `npm run lint` | ESLint |
+| `npm run type-check` | Comprobación de TypeScript |
+| `npm run build` | Build de producción |
+| `npm run seed:demo` | Carga datos ficticios (solo desarrollo) |
 
-## Datos de demostración
+## Configuración de Supabase
 
-Con el esquema de Supabase ya creado, configura la URL, la clave pública y
-`SUPABASE_SERVICE_ROLE_KEY` en `.env.local`. La clave de servicio solo se utiliza
-localmente por el seed; no la uses como variable `NEXT_PUBLIC_*`.
+Aplica en orden las migraciones de `supabase/migrations/` en el SQL Editor o
+mediante la herramienta de migraciones elegida por el equipo. No se aplican al
+desplegar la aplicación. Lee
+[docs/supabase-dashboard.md](./docs/supabase-dashboard.md) antes de actualizar
+un proyecto con datos o esquema existentes.
 
-El seed requiere Node.js 20.6 o superior. Desde PowerShell, habilita la
-confirmación explícita y ejecuta:
+Activa correo/contraseña y Google OAuth en Supabase Auth, configura los
+orígenes/redirects locales y de producción, y habilita Realtime para las tablas
+indicadas en la documentación. El bucket de fotos es privado y aplica sus
+propias políticas de Storage.
+
+## Seed de demostración
+
+Con las migraciones aplicadas, configura en `.env.local` URL, clave pública y
+`SUPABASE_SERVICE_ROLE_KEY`. Desde PowerShell, confirma explícitamente que los
+datos se insertarán en un proyecto de pruebas:
 
 ```powershell
 $env:SEED_DEMO_CONFIRM = "YES"
@@ -51,51 +61,18 @@ npm run seed:demo
 Remove-Item Env:SEED_DEMO_CONFIRM
 ```
 
-El script crea tres usuarios ficticios en Supabase Auth y carga perfiles,
-vehículos, órdenes en distintos estados, trabajos realizados, fotos de ejemplo,
-historial de estados y notas internas. Usa IDs estables y operaciones upsert,
-por lo que se puede volver a ejecutar sin borrar datos. En cada ejecución
-genera contraseñas aleatorias nuevas para las cuentas demo y muestra cada una
-una sola vez durante la ejecución. No lo ejecutes en producción. Los usuarios y
-contraseñas son exclusivamente para desarrollo y pruebas.
+El seed es upsert con identificadores estables y crea usuarios, perfiles,
+vehículos, órdenes, trabajos, fotos de muestra, historial y notas. Genera
+contraseñas aleatorias que solo muestra en la ejecución. **No lo ejecutes en
+producción.**
 
-## Migraciones de seguridad
+## Acceso y despliegue
 
-Las migraciones de `supabase/migrations/` deben ejecutarse en el SQL Editor del
-proyecto Supabase en orden. `20261006100000_secure_profile_policies.sql`
-reemplaza las políticas de perfiles para evitar la recursión y la elevación de
-rol. `20261006102000_fix_auth_profile_trigger.sql` fija el `search_path` y
-califica la tabla del trigger de Auth para que la creación de usuarios también
-funcione desde el servicio de autenticación.
+El middleware verifica sesión, perfil activo y rol; las API Routes validan
+entradas con Zod. RLS y triggers de PostgreSQL son la protección definitiva
+para operaciones directas en Supabase.
 
-## RLS y vistas del dashboard
-
-Consulta [docs/supabase-dashboard.md](./docs/supabase-dashboard.md) para el
-inventario de políticas RLS y vistas SQL, su alcance y las diferencias
-verificadas con la guía inicial.
-
-## Arquitectura acordada
-
-- `app/`: vistas, layouts y API Routes de Next.js (controladores HTTP)
-- `lib/`: acceso compartido a servicios e integraciones
-- Supabase/PostgreSQL: modelo de datos; las políticas RLS deben proteger cada
-  tabla y operación en el proyecto Supabase
-- Los DTO/formularios se validan con Zod tanto en el cliente como en el servidor
-
-La Fase 0 no crea ni modifica tablas, políticas RLS ni credenciales. Genera y
-mantén sincronizados los tipos de base de datos cuando el esquema acordado esté
-disponible. Nunca expongas una clave `service_role` al cliente.
-
-## Validación continua
-
-GitHub Actions ejecuta lint y type-check en Pull Requests hacia `main`. Antes de
-abrir un PR, ejecuta localmente ambos comandos.
-
-## Seguimiento de dependencias
-
-En la auditoría ejecutada durante la Fase 0, `npm audit` reportó 10 alertas en
-dependencias (1 crítica y 9 altas), incluidas alertas de Next.js 14. La solución
-automática que propone npm requiere actualizar a Next.js 16, lo cual cambia la
-versión acordada para este proyecto. Se conserva Next.js 14 según el alcance
-actual; vuelve a evaluar y resolver estas alertas antes de desplegar a
-producción.
+En Vercel configura el directorio raíz del proyecto como `.` para desplegar esta
+aplicación Next.js 14. La conexión del repositorio, variables de entorno y
+despliegue automático de `main` deben configurarse en el panel de Vercel.
+GitHub Actions ejecuta lint y type-check en Pull Requests a `main` y `develop`.

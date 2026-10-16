@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - develop
 
 permissions:
   contents: read
@@ -25,4 +26,4 @@ jobs:
       - name: Run ESLint
         run: npm run lint
       - name: Check TypeScript
-        run: npm run typecheck
+        run: npm run type-check
