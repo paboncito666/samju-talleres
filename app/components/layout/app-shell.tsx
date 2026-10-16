@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { UserMenu } from "@/app/components/layout/user-menu";
 import { signOutAction } from "@/app/auth/actions";
 import { canAccessPath, isProfileRole } from "@/lib/auth/permissions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -25,7 +26,7 @@ export async function AppShell({
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("nombre, rol, activo")
+    .select("nombre, rol, activo, avatar_url")
     .eq("id", user.id)
     .maybeSingle();
   if (error) throw new Error(`No se pudo cargar el perfil: ${error.message}`);
@@ -53,12 +54,13 @@ export async function AppShell({
               </Link>
             ))}
           </nav>
-          <div className="flex items-center gap-3">
-            <span className="hidden text-right sm:block"><span className="block text-sm font-medium text-ink">{profile.nombre}</span><span className="text-xs capitalize text-muted">{profile.rol}</span></span>
-            <form action={signOutAction}>
-              <button className="rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink hover:bg-mist" type="submit">Cerrar sesión</button>
-            </form>
-          </div>
+          <UserMenu
+            avatarUrl={profile.avatar_url}
+            email={user.email ?? ""}
+            name={profile.nombre}
+            role={profile.rol}
+            signOutAction={signOutAction}
+          />
         </div>
       </header>
       <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-9">{children}</div>

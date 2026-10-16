@@ -26,6 +26,9 @@ la herramienta de migraciones elegida por el equipo:
 6. `20261016100000_google_profile_names_and_staff_roles.sql`: solicita confirmar
    el nombre de perfiles de Google y habilita la asignación de roles para cuentas
    de mecánico y recepción mediante una función restringida a administradores.
+7. `20261016110000_add_profile_avatars.sql`: crea el bucket público de avatares
+   con límite de tamaño/tipo y políticas que restringen carga y cambios a la
+   carpeta del usuario autenticado.
 
 La primera migración es idempotente para las tablas y objetos que declara y
 añade `diagnostico` si falta. Si el proyecto ya tiene un esquema distinto,
@@ -97,10 +100,10 @@ de lectura de cada rol.
 
 ## Perfiles de Google y roles
 
-Al autenticar una cuenta Google sin un nombre confirmado, el callback dirige a
-`/completar-perfil` antes de acceder al dashboard. Las cuentas Google existentes
-quedan pendientes de confirmación al aplicar la sexta migración. Los perfiles de
-contraseña conservan el nombre proporcionado durante el registro.
+Al autenticar una cuenta Google sin un nombre confirmado, el usuario entra al
+dashboard y ve una tarjeta para actualizarlo. Las cuentas Google existentes
+quedan pendientes de confirmación al aplicar la sexta migración. El nombre
+también se puede actualizar desde los ajustes de cuenta.
 
 La sección **Personal** solo está disponible para administradores. La función
 `confirm_own_profile_name(new_name)` permite a cada cuenta confirmar su propio
@@ -110,6 +113,15 @@ propio perfil o perfiles administradores y solo acepta `mecanico` y
 `recepcionista`. La función adapta el rol al tipo enum usado por la columna en
 el esquema desplegado. No se concede permiso directo para actualizar las
 columnas de confirmación ni de rol.
+
+## Cuenta y preferencias
+
+El menú de usuario ofrece acceso a los ajustes de cuenta y guarda tema claro/
+oscuro y tamaño de texto en el almacenamiento local del navegador. La sección
+`/ajustes/cuenta` permite cambiar nombre, foto, contraseña y correo. Las fotos se
+almacenan en el bucket público `avatars`, bajo una ruta cuyo primer segmento es
+el UUID del usuario; solo ese usuario puede cargar o sobrescribir su imagen.
+Los cambios de correo dependen de la confirmación configurada en Supabase Auth.
 
 ## Verificación en Supabase
 
