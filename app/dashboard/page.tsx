@@ -76,7 +76,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <Link className="rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white hover:bg-ink/90" href="/ordenes">Ver órdenes</Link>
       </header>
       {!profileResult.data.nombre_confirmado && (
-        <ProfileNameCard error={searchParams.profileNameError} />
+        <ProfileNameCard error={searchParams.profileNameError} userId={user.id} />
       )}
       {searchParams.profileNameUpdated === "1" && (
         <p className="rounded-xl border border-sage-foreground/20 bg-white p-4 text-sm text-ink" role="status">
