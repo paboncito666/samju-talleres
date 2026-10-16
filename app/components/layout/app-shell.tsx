@@ -8,6 +8,7 @@ const navigation = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/vehiculos", label: "Vehículos" },
   { href: "/ordenes", label: "Órdenes" },
+  { href: "/admin/personal", label: "Personal" },
 ];
 
 export async function AppShell({

@@ -71,5 +71,11 @@ function redirectWithCookies(
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/vehiculos/:path*", "/ordenes/:path*", "/historial/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/dashboard/:path*",
+    "/vehiculos/:path*",
+    "/ordenes/:path*",
+    "/historial/:path*",
+  ],
 };
