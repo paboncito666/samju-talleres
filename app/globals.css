@@ -7,20 +7,54 @@
   --background: #f7f8f7;
   --foreground: #252927;
   --surface: #ffffff;
+  --ink: #252927;
   --muted: #737a76;
   --line: #e4e8e5;
   --mist: #eef1ef;
   --sage: #a9b9ad;
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #171a18;
+  --foreground: #e5e9e6;
+  --surface: #222724;
+  --ink: #e5e9e6;
+  --muted: #a6b0a9;
+  --line: #39413c;
+  --mist: #2b322e;
+  --sage: #8da696;
+}
+
+:root[data-font-size="small"] {
+  font-size: 14px;
+}
+
+:root[data-font-size="normal"] {
+  font-size: 16px;
+}
+
+:root[data-font-size="large"] {
+  font-size: 18px;
+}
+
 * {
   box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+.bg-white {
+  background-color: var(--surface);
 }
 
 button,

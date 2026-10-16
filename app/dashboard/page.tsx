@@ -1,9 +1,14 @@
 import Link from "next/link";
 import { Activity, ClipboardList, Clock3, Wrench } from "lucide-react";
 import { DashboardCharts } from "@/app/components/dashboard/charts";
+import { ProfileNameCard } from "@/app/components/dashboard/profile-name-card";
 import { RealtimeRefresher } from "@/app/components/realtime/realtime-refresher";
 import { ACTIVE_STATUSES, ESTADOS } from "@/lib/estados";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+interface DashboardPageProps {
+  searchParams: { profileNameError?: string; profileNameUpdated?: string };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -12,17 +17,30 @@ const colors = [
   "#a9d1c4", "#c0d49f", "#c9c9ce", "#e1b8bd",
 ];
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const supabase = await createSupabaseServerClient();
-  const [ordersResult, mechanicsResult] = await Promise.all([
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError) throw new Error(`No se pudo validar la sesión: ${userError.message}`);
+  if (!user) throw new Error("Inicia sesión para consultar el dashboard.");
+
+  const [ordersResult, mechanicsResult, profileResult] = await Promise.all([
     supabase
       .from("ordenes_trabajo")
       .select("id, estado, fecha_ingreso, fecha_entrega_real, mecanico_id")
       .order("fecha_ingreso", { ascending: false }),
     supabase.from("profiles").select("id, nombre").eq("rol", "mecanico").eq("activo", true),
+    supabase
+      .from("profiles")
+      .select("nombre_confirmado")
+      .eq("id", user.id)
+      .single(),
   ]);
   if (ordersResult.error) throw new Error(`No se pudieron cargar las órdenes: ${ordersResult.error.message}`);
   if (mechanicsResult.error) throw new Error(`No se pudo cargar el personal: ${mechanicsResult.error.message}`);
+  if (profileResult.error) throw new Error(`No se pudo cargar el perfil: ${profileResult.error.message}`);
 
   const orders = ordersResult.data;
   const active = orders.filter((order) => ACTIVE_STATUSES.includes(order.estado));
@@ -57,6 +75,14 @@ export default async function DashboardPage() {
         <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Resumen operativo</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink">Dashboard</h1><p className="mt-2 text-sm text-muted">Estado general del taller y carga de trabajo.</p></div>
         <Link className="rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white hover:bg-ink/90" href="/ordenes">Ver órdenes</Link>
       </header>
+      {!profileResult.data.nombre_confirmado && (
+        <ProfileNameCard error={searchParams.profileNameError} />
+      )}
+      {searchParams.profileNameUpdated === "1" && (
+        <p className="rounded-xl border border-sage-foreground/20 bg-white p-4 text-sm text-ink" role="status">
+          Tu nombre se actualizó correctamente.
+        </p>
+      )}
       <section aria-label="Indicadores principales" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map(({ label, value, icon: Icon }) => (
           <article className="rounded-2xl border border-line bg-white p-5 shadow-soft" key={label}>
