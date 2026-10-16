@@ -23,6 +23,9 @@ la herramienta de migraciones elegida por el equipo:
    políticas antiguas de órdenes, retira el trigger legado que insertaba en el
    historial sin permisos, corrige el registro de estados y el acceso a fotos,
    y añade las tablas operativas a `supabase_realtime` si existe la publicación.
+6. `20261016100000_google_profile_names_and_staff_roles.sql`: solicita confirmar
+   el nombre de perfiles de Google y habilita la asignación de roles para cuentas
+   de mecánico y recepción mediante una función restringida a administradores.
 
 La primera migración es idempotente para las tablas y objetos que declara y
 añade `diagnostico` si falta. Si el proyecto ya tiene un esquema distinto,
@@ -43,7 +46,7 @@ depender de un nombre concreto del tipo enum de roles (`rol_personal` o
 
 | Tabla | Lectura | Escritura |
 | --- | --- | --- |
-| `profiles` | Personal autenticado | Solo la propia fila; las concesiones SQL limitan la modificación a `nombre` y `avatar_url`. |
+| `profiles` | Personal autenticado | Cada persona modifica su propio nombre/avatar; `nombre_confirmado` solo cambia mediante `confirm_own_profile_name()`. Los roles solo se cambian mediante `assign_staff_role()` para administradores activos, otras cuentas y los roles `mecanico`/`recepcionista`. |
 | `vehiculos` | Personal con perfil activo | `admin` y `recepcionista`; placa única. |
 | `ordenes_trabajo` | `admin`/`recepcionista` leen todas; `mecanico` solo sus órdenes asignadas | Recepción/admin crean; personal autorizado actualiza; trigger valida transición y exige diagnóstico para calidad/cierre. |
 | `trabajos_realizados` | Personal activo | Personal autenticado puede registrar/actualizar trabajos; solo `admin` puede eliminarlos. |
@@ -91,6 +94,22 @@ Una fila por mecánico activo con órdenes en reparación, órdenes activas y
 promedio de días entre ingreso y entrega. El dashboard actual calcula sus
 gráficas a partir de órdenes visibles para la sesión para respetar el alcance
 de lectura de cada rol.
+
+## Perfiles de Google y roles
+
+Al autenticar una cuenta Google sin un nombre confirmado, el callback dirige a
+`/completar-perfil` antes de acceder al dashboard. Las cuentas Google existentes
+quedan pendientes de confirmación al aplicar la sexta migración. Los perfiles de
+contraseña conservan el nombre proporcionado durante el registro.
+
+La sección **Personal** solo está disponible para administradores. La función
+`confirm_own_profile_name(new_name)` permite a cada cuenta confirmar su propio
+nombre pendiente. `assign_staff_role(target_profile_id, new_role)` vuelve a
+comprobar el rol activo del administrador en PostgreSQL, impide modificar el
+propio perfil o perfiles administradores y solo acepta `mecanico` y
+`recepcionista`. La función adapta el rol al tipo enum usado por la columna en
+el esquema desplegado. No se concede permiso directo para actualizar las
+columnas de confirmación ni de rol.
 
 ## Verificación en Supabase
 

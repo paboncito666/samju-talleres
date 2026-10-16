@@ -10,6 +10,9 @@ export function isProfileRole(value: unknown): value is ProfileRole {
 }
 
 export function canAccessPath(role: ProfileRole, pathname: string): boolean {
+  if (pathname.startsWith("/admin")) {
+    return role === "admin";
+  }
   if (pathname.startsWith("/vehiculos")) {
     return role === "admin" || role === "recepcionista";
   }
