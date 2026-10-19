@@ -72,6 +72,7 @@ function redirectWithCookies(
 
 export const config = {
   matcher: [
+    "/",
     "/admin/:path*",
     "/ajustes/:path*",
     "/dashboard/:path*",
