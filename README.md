@@ -15,8 +15,10 @@ Copy-Item .env.example .env.local
 ```
 
 Completa en `.env.local` `NEXT_PUBLIC_SUPABASE_URL` y
-`NEXT_PUBLIC_SUPABASE_ANON_KEY`. La `SUPABASE_SERVICE_ROLE_KEY` se requiere
-únicamente para el seed local; nunca la expongas al navegador ni la subas a Git.
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`. El alta de personal y el seed requieren
+`SUPABASE_SERVICE_ROLE_KEY` solo en el servidor; nunca la expongas al navegador
+ni la subas a Git. En Vercel, configúrala como variable server-only para que el
+administrador pueda enviar invitaciones.
 Las credenciales OAuth de Google se configuran en el proveedor Google de
 Supabase. Después:
 
@@ -47,7 +49,9 @@ un proyecto con datos o esquema existentes.
 Activa correo/contraseña y Google OAuth en Supabase Auth, configura los
 orígenes/redirects locales y de producción, y habilita Realtime para las tablas
 indicadas en la documentación. El bucket de fotos es privado y aplica sus
-propias políticas de Storage.
+propias políticas de Storage. Desactiva el registro público de usuarios: las
+cuentas se crean desde **Personal → Invitar personal**, mediante invitación de
+correo y activación de contraseña.
 
 ## Seed de demostración
 
@@ -71,6 +75,18 @@ producción.**
 El middleware verifica sesión, perfil activo y rol; las API Routes validan
 entradas con Zod. RLS y triggers de PostgreSQL son la protección definitiva
 para operaciones directas en Supabase.
+
+Administradores y recepcionistas pueden registrar vehículos desde **Vehículos
+→ Registrar vehículo** y abrir órdenes desde **Órdenes → Abrir orden**. Después
+de crear una orden, su detalle permite cargar hasta seis fotos por lote,
+clasificadas como entrada, proceso o salida. Para entregar una orden se requiere
+al menos una foto de salida. El detalle permite editar los datos del vehículo,
+gestionar trabajos específicos y consultar su avance. El historial ofrece
+búsquedas de órdenes cerradas por placa, rango de fechas, tipo de servicio y
+mecánico. El dashboard alerta las órdenes activas con tres días o más sin cambio
+de estado. El detalle del vehículo reúne sus órdenes activas, fotos y enlace al
+historial de servicios cerrados. La lista de vehículos muestra por defecto los
+que tienen órdenes activas; el filtro permite incluir los demás.
 
 En Vercel configura el directorio raíz del proyecto como `.` para desplegar esta
 aplicación Next.js 14. La conexión del repositorio, variables de entorno y
