@@ -9,6 +9,7 @@ const navigation = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/vehiculos", label: "Vehículos" },
   { href: "/ordenes", label: "Órdenes" },
+  { href: "/historial", label: "Historial" },
   { href: "/admin/personal", label: "Personal" },
 ];
 

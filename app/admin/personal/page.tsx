@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { updateStaffRole } from "@/app/admin/personal/actions";
 import { isProfileRole } from "@/lib/auth/permissions";
+import { StaffInvitationForm } from "./invitation-form";
 
 interface PageProps {
   searchParams: { actualizado?: string };
@@ -46,6 +47,8 @@ export default async function StaffRolesPage({ searchParams }: PageProps) {
           El rol se actualizó correctamente.
         </p>
       )}
+
+      <StaffInvitationForm />
 
       {profiles.length === 0 ? (
         <p className="rounded-xl border border-dashed border-line bg-white p-8 text-center text-sm text-muted">

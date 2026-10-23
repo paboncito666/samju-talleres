@@ -29,6 +29,10 @@ la herramienta de migraciones elegida por el equipo:
 7. `20261016110000_add_profile_avatars.sql`: crea el bucket público de avatares
    con límite de tamaño/tipo y políticas que restringen carga y cambios a la
    carpeta del usuario autenticado.
+8. `20261022140000_add_historical_search_index.sql`: agrega un índice para las
+   consultas del historial filtradas por tipo de servicio y fecha.
+9. `20261022150000_enable_vehicle_updates.sql`: concede y limita las
+   actualizaciones de datos del vehículo a administradores y recepcionistas.
 
 La primera migración es idempotente para las tablas y objetos que declara y
 añade `diagnostico` si falta. Si el proyecto ya tiene un esquema distinto,
@@ -50,7 +54,7 @@ depender de un nombre concreto del tipo enum de roles (`rol_personal` o
 | Tabla | Lectura | Escritura |
 | --- | --- | --- |
 | `profiles` | Personal autenticado | Cada persona modifica su propio nombre/avatar; `nombre_confirmado` solo cambia mediante `confirm_own_profile_name()`. Los roles solo se cambian mediante `assign_staff_role()` para administradores activos, otras cuentas y los roles `mecanico`/`recepcionista`. |
-| `vehiculos` | Personal con perfil activo | `admin` y `recepcionista`; placa única. |
+| `vehiculos` | Personal con perfil activo | `admin` y `recepcionista`; pueden crear y actualizar datos básicos; placa única. |
 | `ordenes_trabajo` | `admin`/`recepcionista` leen todas; `mecanico` solo sus órdenes asignadas | Recepción/admin crean; personal autorizado actualiza; trigger valida transición y exige diagnóstico para calidad/cierre. |
 | `trabajos_realizados` | Personal activo | Personal autenticado puede registrar/actualizar trabajos; solo `admin` puede eliminarlos. |
 | `fotos_vehiculo` | Personal activo | Solo se pueden registrar fotos asociadas a la sesión; eliminación de metadatos reservada a `admin`. |

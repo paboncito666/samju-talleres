@@ -19,6 +19,7 @@ import { RealtimeRefresher } from "@/app/components/realtime/realtime-refresher"
 import { resolveVehiclePhotoUrls } from "@/lib/storage/photos";
 import type { WorkOrderStatus } from "@/lib/validations/api";
 import { InternalNotes } from "./internal-notes";
+import { WorkItems } from "./work-items";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +124,7 @@ export default async function WorkOrderDetailPage({
 
   if (!orden) notFound();
   const fotosFirmadas = await resolveVehiclePhotoUrls(orden.fotos_vehiculo ?? []);
+  const hasExitPhoto = (orden.fotos_vehiculo ?? []).some((photo) => photo.etapa === "salida");
 
   const assignedProfileIds = [
     orden.mecanico_id,
@@ -434,9 +436,16 @@ export default async function WorkOrderDetailPage({
           <StatusControls
             currentStatus={orden.estado as WorkOrderStatus}
             initialDiagnosis={orden.diagnostico ?? ""}
+            hasExitPhoto={hasExitPhoto}
             orderId={orden.id}
           />
           <PhotoUpload orderId={orden.id} />
+        </section>
+        <section className="mt-5">
+          <WorkItems
+            initialItems={orden.trabajos_realizados ?? []}
+            orderId={orden.id}
+          />
         </section>
         <section className="mt-5">
           <PhotoGallery photos={fotosFirmadas} />

@@ -13,10 +13,12 @@ export function StatusControls({
   orderId,
   currentStatus,
   initialDiagnosis,
+  hasExitPhoto,
 }: {
   orderId: string;
   currentStatus: WorkOrderStatus;
   initialDiagnosis: string;
+  hasExitPhoto: boolean;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<WorkOrderStatus>(
@@ -28,6 +30,7 @@ export function StatusControls({
   const [busy, setBusy] = useState(false);
   const options = workOrderStatusTransitions[currentStatus];
   const needsDiagnosis = ["CALIDAD", "LISTO", "ENTREGADO"].includes(status);
+  const needsExitPhoto = status === "ENTREGADO" && !hasExitPhoto;
 
   async function save() {
     setBusy(true);
@@ -70,8 +73,9 @@ export function StatusControls({
         {status === "CANCELADO" && <label className="text-xs font-medium text-muted md:col-span-2">Motivo de cancelación<textarea className="mt-1.5 block w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} /></label>}
       </div>
       {needsDiagnosis && !diagnosis.trim() && <p className="mt-3 text-xs text-muted">El diagnóstico es obligatorio antes de control de calidad o cierre.</p>}
+      {needsExitPhoto && <p className="mt-3 text-xs text-muted">Sube al menos una fotografía de salida en la sección de fotografías antes de entregar el vehículo.</p>}
       {error && <p className="mt-3 text-sm text-red-700" role="alert">{error}</p>}
-      <button className="mt-4 rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50" disabled={busy || !options.length || status === currentStatus || (needsDiagnosis && !diagnosis.trim()) || (status === "CANCELADO" && !reason.trim())} onClick={save} type="button">
+      <button className="mt-4 rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50" disabled={busy || !options.length || status === currentStatus || (needsDiagnosis && !diagnosis.trim()) || needsExitPhoto || (status === "CANCELADO" && !reason.trim())} onClick={save} type="button">
         {busy ? "Guardando..." : "Actualizar orden"}
       </button>
       {workOrderStatuses.includes(currentStatus) && !options.length && <p className="mt-3 text-xs text-muted">La orden está en un estado final.</p>}

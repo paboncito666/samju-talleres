@@ -49,6 +49,26 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   if (nextStatus === "CANCELADO" && !parsed.data.motivo?.trim()) {
     return NextResponse.json({ error: "Indica el motivo de cancelación." }, { status: 400 });
   }
+  if (nextStatus === "ENTREGADO") {
+    const { count, error: photoError } = await auth.supabase
+      .from("fotos_vehiculo")
+      .select("id", { count: "exact", head: true })
+      .eq("orden_id", params.id)
+      .eq("etapa", "salida");
+    if (photoError) {
+      console.error("No se pudieron comprobar las fotos de salida.", photoError);
+      return NextResponse.json(
+        { error: "No se pudieron validar las fotografías de salida." },
+        { status: 500 },
+      );
+    }
+    if (!count) {
+      return NextResponse.json(
+        { error: "Sube al menos una fotografía de salida antes de entregar el vehículo." },
+        { status: 422 },
+      );
+    }
+  }
 
   const changes: Record<string, unknown> = {
     estado: nextStatus,

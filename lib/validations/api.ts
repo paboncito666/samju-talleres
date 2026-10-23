@@ -23,6 +23,8 @@ export const vehicleCreateSchema = z
   })
   .strict();
 
+export const vehicleUpdateSchema = vehicleCreateSchema;
+
 export const workOrderCreateSchema = z
   .object({
     vehiculo_id: z.string().uuid(),
@@ -30,6 +32,27 @@ export const workOrderCreateSchema = z
     descripcion_trabajo: z.string().trim().min(1).max(10_000),
     tipo_servicio: z.enum(workTypes),
     fecha_estimada_entrega: z.string().date().nullable().optional(),
+  })
+  .strict();
+
+export const workItemCreateSchema = z
+  .object({
+    descripcion: z.string().trim().min(1).max(2_000),
+    tipo: z.enum(workTypes),
+  })
+  .strict();
+
+export const workItemUpdateSchema = workItemCreateSchema
+  .partial()
+  .extend({ completado: z.boolean().optional() })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0);
+
+export const staffInvitationSchema = z
+  .object({
+    nombre: z.string().trim().min(2).max(80),
+    email: z.string().trim().email().max(254),
+    rol: z.enum(["mecanico", "recepcionista"]),
   })
   .strict();
 
@@ -59,10 +82,10 @@ export const workOrderStatusTransitions: Record<
   readonly WorkOrderStatus[]
 > = {
   RECIBIDO: ["DIAGNOSTICO"],
-  DIAGNOSTICO: ["PENDIENTE"],
+  DIAGNOSTICO: ["PENDIENTE", "REPARACION", "CANCELADO"],
   PENDIENTE: ["REPARACION", "CANCELADO"],
   REPARACION: ["CALIDAD"],
-  CALIDAD: ["LISTO", "CANCELADO"],
+  CALIDAD: ["REPARACION", "LISTO", "CANCELADO"],
   LISTO: ["ENTREGADO"],
   ENTREGADO: [],
   CANCELADO: [],

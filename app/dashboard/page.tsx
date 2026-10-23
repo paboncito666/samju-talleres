@@ -44,6 +44,35 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   const orders = ordersResult.data;
   const active = orders.filter((order) => ACTIVE_STATUSES.includes(order.estado));
+  const activeOrderIds = active.map((order) => order.id);
+  const historyResult = activeOrderIds.length
+    ? await supabase
+        .from("historial_estados")
+        .select("orden_id, creado_en")
+        .in("orden_id", activeOrderIds)
+        .order("creado_en", { ascending: false })
+    : { data: [], error: null };
+  if (historyResult.error) {
+    throw new Error(`No se pudo consultar el avance de las órdenes: ${historyResult.error.message}`);
+  }
+  const latestStatusChange = new Map<string, string>();
+  for (const event of historyResult.data ?? []) {
+    if (!latestStatusChange.has(event.orden_id)) {
+      latestStatusChange.set(event.orden_id, event.creado_en);
+    }
+  }
+  const alertThresholdDays = 3;
+  const staleOrders = active
+    .map((order) => {
+      const lastAdvance = latestStatusChange.get(order.id) ?? order.fecha_ingreso;
+      return {
+        ...order,
+        lastAdvance,
+        staleDays: Math.floor((Date.now() - new Date(lastAdvance).getTime()) / 86_400_000),
+      };
+    })
+    .filter((order) => order.staleDays >= alertThresholdDays)
+    .sort((a, b) => b.staleDays - a.staleDays);
   const delivered = orders.filter((order) => order.estado === "ENTREGADO" && order.fecha_entrega_real);
   const averageDays = delivered.length
     ? delivered.reduce((sum, order) => sum + Math.max(
@@ -70,7 +99,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   return (
     <main className="space-y-7">
-      <RealtimeRefresher tables={["ordenes_trabajo"]} />
+      <RealtimeRefresher tables={["ordenes_trabajo", "historial_estados"]} />
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Resumen operativo</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink">Dashboard</h1><p className="mt-2 text-sm text-muted">Estado general del taller y carga de trabajo.</p></div>
         <Link className="rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white hover:bg-ink/90" href="/ordenes">Ver órdenes</Link>
@@ -83,6 +112,43 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           Tu nombre se actualizó correctamente.
         </p>
       )}
+      <section
+        aria-label="Alertas de órdenes sin avances"
+        className={`rounded-2xl border p-5 ${staleOrders.length ? "border-amber-300 bg-amber-50" : "border-line bg-white"}`}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-ink">Alertas de seguimiento</h2>
+            <p className="mt-1 text-sm text-muted">
+              Órdenes activas sin cambios de estado durante {alertThresholdDays} días o más.
+            </p>
+          </div>
+          <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-ink">
+            {staleOrders.length}
+          </span>
+        </div>
+        {staleOrders.length === 0 ? (
+          <p className="mt-4 text-sm text-muted">No hay órdenes pendientes de avance.</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-amber-200">
+            {staleOrders.map((order) => (
+              <li className="flex flex-wrap items-center justify-between gap-3 py-3" key={order.id}>
+                <div>
+                  <Link className="font-medium text-ink underline" href={`/ordenes/${order.id}`}>
+                    Orden {order.id.slice(0, 8).toUpperCase()}
+                  </Link>
+                  <p className="mt-1 text-xs text-muted">
+                    {ESTADOS[order.estado as keyof typeof ESTADOS]?.label ?? order.estado} · {order.staleDays} días sin cambio
+                  </p>
+                </div>
+                <Link className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-ink" href={`/ordenes/${order.id}`}>
+                  Revisar orden
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
       <section aria-label="Indicadores principales" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map(({ label, value, icon: Icon }) => (
           <article className="rounded-2xl border border-line bg-white p-5 shadow-soft" key={label}>
