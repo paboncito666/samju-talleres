@@ -118,6 +118,11 @@ propio perfil o perfiles administradores y solo acepta `mecanico` y
 el esquema desplegado. No se concede permiso directo para actualizar las
 columnas de confirmación ni de rol.
 
+Las invitaciones marcan la cuenta con `force_password_setup`. Al aceptar el
+enlace, la persona debe elegir y confirmar una contraseña antes de acceder a
+otras páginas protegidas. El callback también valida que el rol tenga permiso
+para la ruta de retorno; si no lo tiene, la sesión abre el dashboard.
+
 ## Cuenta y preferencias
 
 El menú de usuario ofrece acceso a los ajustes de cuenta y guarda tema claro/

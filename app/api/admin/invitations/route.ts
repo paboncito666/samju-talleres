@@ -43,7 +43,10 @@ export async function POST(request: Request) {
   const { data, error } = await adminClient.auth.admin.inviteUserByEmail(
     parsed.data.email,
     {
-      data: { full_name: parsed.data.nombre },
+      data: {
+        full_name: parsed.data.nombre,
+        force_password_setup: true,
+      },
       redirectTo,
     },
   );

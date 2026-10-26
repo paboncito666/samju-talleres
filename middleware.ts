@@ -40,6 +40,14 @@ export async function middleware(request: NextRequest) {
     return redirectWithCookies(request, response, loginUrl);
   }
 
+  const passwordSetupPath = "/ajustes/establecer-contrasena";
+  if (
+    user.user_metadata?.force_password_setup === true &&
+    request.nextUrl.pathname !== passwordSetupPath
+  ) {
+    return redirectWithCookies(request, response, passwordSetupPath);
+  }
+
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("rol, activo")
