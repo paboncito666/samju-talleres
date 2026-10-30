@@ -56,5 +56,10 @@ export async function GET(request: NextRequest) {
       : "/dashboard";
     return NextResponse.redirect(new URL(destination, request.url));
   }
-  return NextResponse.redirect(new URL("/login?error=oauth", request.url));
+
+  const confirmationUrl = new URL(
+    `/auth/callback/complete${request.nextUrl.search}`,
+    request.url,
+  );
+  return NextResponse.redirect(confirmationUrl);
 }
