@@ -23,8 +23,8 @@ const filtersSchema = z.object({
     z.string().uuid().optional(),
   ),
   page: z.preprocess(
-    (value) => value === undefined ? "1" : value,
-    z.string().regex(/^\d+$/).transform(Number).refine((value) => value >= 1),
+    (value) => value === undefined ? undefined : value,
+    z.string().regex(/^\d+$/).optional().transform((value) => Number(value ?? "1")).refine((value) => value >= 1),
   ),
 });
 
@@ -56,21 +56,30 @@ function pageHref(searchParams: SearchParams, page: number) {
 export default async function HistorySearchPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<SearchParams>;
 }) {
+  const rawFilters = await searchParams;
   const supabase = await createSupabaseServerClient();
-  const parsed = filtersSchema.safeParse(searchParams);
-  const filters = parsed.success ? parsed.data : null;
+  const parsed = filtersSchema.safeParse(rawFilters);
+  const validFilters = parsed.success ? parsed.data : null;
   const filtersError = parsed.success
     ? parsed.data.desde && parsed.data.hasta && parsed.data.desde > parsed.data.hasta
       ? "La fecha inicial no puede ser posterior a la fecha final."
       : ""
     : "Uno o más filtros no tienen un formato válido.";
-  const validFilters = filters && !filtersError ? filters : null;
+  const searchFilters = validFilters ?? {
+    q: rawFilters.q ?? "",
+    desde: rawFilters.desde,
+    hasta: rawFilters.hasta,
+    tipo: rawFilters.tipo,
+    mecanicoId: rawFilters.mecanicoId,
+    page: 1,
+  };
+  const activeFilters = validFilters && !filtersError ? validFilters : null;
   const [mechanicsResult, ordersResult] = await Promise.all([
     supabase.from("profiles").select("id, nombre").eq("rol", "mecanico").eq("activo", true).order("nombre"),
     (async () => {
-      if (!validFilters) return { data: [], error: null, count: 0 };
+      if (!activeFilters) return { data: [], error: null, count: 0 };
       const pageSize = 50;
       let query = supabase
         .from("ordenes_trabajo")
@@ -80,12 +89,12 @@ export default async function HistorySearchPage({
         )
         .in("estado", ["ENTREGADO", "CANCELADO"])
         .order("fecha_ingreso", { ascending: false })
-        .range((validFilters.page - 1) * pageSize, validFilters.page * pageSize - 1);
-      if (validFilters.q) query = query.ilike("vehiculos.placa", `%${validFilters.q}%`);
-      if (validFilters.desde) query = query.gte("fecha_ingreso", `${validFilters.desde}T00:00:00.000Z`);
-      if (validFilters.hasta) query = query.lt("fecha_ingreso", dayAfter(validFilters.hasta));
-      if (validFilters.tipo) query = query.eq("tipo_servicio", validFilters.tipo);
-      if (validFilters.mecanicoId) query = query.eq("mecanico_id", validFilters.mecanicoId);
+        .range((activeFilters.page - 1) * pageSize, activeFilters.page * pageSize - 1);
+      if (activeFilters.q) query = query.ilike("vehiculos.placa", `%${activeFilters.q}%`);
+      if (activeFilters.desde) query = query.gte("fecha_ingreso", `${activeFilters.desde}T00:00:00.000Z`);
+      if (activeFilters.hasta) query = query.lt("fecha_ingreso", dayAfter(activeFilters.hasta));
+      if (activeFilters.tipo) query = query.eq("tipo_servicio", activeFilters.tipo);
+      if (activeFilters.mecanicoId) query = query.eq("mecanico_id", activeFilters.mecanicoId);
       const result = await query;
       return { ...result, count: result.count ?? 0 };
     })(),
@@ -106,7 +115,7 @@ export default async function HistorySearchPage({
   const mechanicNames = new Map((namesResult.data ?? []).map((profile) => [profile.id, profile.nombre]));
   const pageSize = 50;
   const totalPages = Math.max(1, Math.ceil(ordersResult.count / pageSize));
-  const currentPage = validFilters?.page ?? 1;
+  const currentPage = activeFilters?.page ?? 1;
 
   return (
       <main className="space-y-6">
@@ -118,26 +127,26 @@ export default async function HistorySearchPage({
         <form className="grid gap-3 rounded-2xl border border-line bg-white p-4 sm:grid-cols-2 lg:grid-cols-6" method="get">
           <label className="text-xs font-medium text-muted lg:col-span-2">
             Placa
-            <input className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" defaultValue={searchParams.q} maxLength={12} name="q" placeholder="Ej. ABC-123" />
+            <input className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" defaultValue={searchFilters.q} maxLength={12} name="q" placeholder="Ej. ABC-123" />
           </label>
           <label className="text-xs font-medium text-muted">
             Desde
-            <input className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" defaultValue={searchParams.desde} name="desde" type="date" />
+            <input className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" defaultValue={searchFilters.desde} name="desde" type="date" />
           </label>
           <label className="text-xs font-medium text-muted">
             Hasta
-            <input className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" defaultValue={searchParams.hasta} name="hasta" type="date" />
+            <input className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" defaultValue={searchFilters.hasta} name="hasta" type="date" />
           </label>
           <label className="text-xs font-medium text-muted">
             Tipo de servicio
-            <select className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" defaultValue={searchParams.tipo} name="tipo">
+            <select className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" defaultValue={searchFilters.tipo} name="tipo">
               <option value="">Todos</option>
               {serviceTypes.map((type) => <option key={type} value={type}>{type[0].toUpperCase() + type.slice(1)}</option>)}
             </select>
           </label>
           <label className="text-xs font-medium text-muted">
             Mecánico
-            <select className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" defaultValue={searchParams.mecanicoId} name="mecanicoId">
+            <select className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" defaultValue={searchFilters.mecanicoId} name="mecanicoId">
               <option value="">Todos</option>
               {mechanicsResult.data.map((mechanic) => <option key={mechanic.id} value={mechanic.id}>{mechanic.nombre}</option>)}
             </select>
@@ -148,7 +157,7 @@ export default async function HistorySearchPage({
           </div>
         </form>
         {filtersError && <p className="text-sm text-red-700" role="alert">{filtersError}</p>}
-        {validFilters && (
+        {activeFilters && (
           <>
             <p className="text-sm text-muted">{ordersResult.count} órdenes cerradas encontradas.</p>
             {ordersResult.data.length === 0 ? (
@@ -185,8 +194,8 @@ export default async function HistorySearchPage({
               <nav aria-label="Paginación del historial" className="flex items-center justify-between">
                 <span className="text-sm text-muted">Página {currentPage} de {totalPages}</span>
                 <div className="flex gap-2">
-                  {currentPage > 1 && <Link className="rounded-lg border border-line px-3 py-2 text-sm text-ink" href={pageHref(searchParams, currentPage - 1)}>Anterior</Link>}
-                  {currentPage < totalPages && <Link className="rounded-lg border border-line px-3 py-2 text-sm text-ink" href={pageHref(searchParams, currentPage + 1)}>Siguiente</Link>}
+                  {currentPage > 1 && <Link className="rounded-lg border border-line px-3 py-2 text-sm text-ink" href={pageHref(rawFilters, currentPage - 1)}>Anterior</Link>}
+                  {currentPage < totalPages && <Link className="rounded-lg border border-line px-3 py-2 text-sm text-ink" href={pageHref(rawFilters, currentPage + 1)}>Siguiente</Link>}
                 </div>
               </nav>
             )}

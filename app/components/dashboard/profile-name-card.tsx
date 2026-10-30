@@ -2,8 +2,13 @@
 
 import Link from "next/link";
 import { X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { updateProfileName } from "@/app/dashboard/profile-name-actions";
+
+function subscribeToDismissal(eventName: string, callback: () => void) {
+  window.addEventListener(eventName, callback);
+  return () => window.removeEventListener(eventName, callback);
+}
 
 export function ProfileNameCard({
   error,
@@ -12,8 +17,6 @@ export function ProfileNameCard({
   error?: string;
   userId: string;
 }) {
-  const [isOpen, setIsOpen] = useState(true);
-  const [isReady, setIsReady] = useState(false);
   const nameInput = useRef<HTMLInputElement>(null);
   const errorMessage =
     error === "nombre"
@@ -22,15 +25,17 @@ export function ProfileNameCard({
         ? "No se pudo guardar el nombre. Inténtalo de nuevo."
         : "";
   const dismissalKey = `samju-profile-name-dismissed:${userId}`;
+  const dismissalEvent = `${dismissalKey}:change`;
+  const isDismissed = useSyncExternalStore(
+    (callback) => subscribeToDismissal(dismissalEvent, callback),
+    () => window.sessionStorage.getItem(dismissalKey) === "1",
+    () => true,
+  );
+  const isOpen = Boolean(error) || !isDismissed;
   const dismiss = useCallback(() => {
     window.sessionStorage.setItem(dismissalKey, "1");
-    setIsOpen(false);
-  }, [dismissalKey]);
-
-  useEffect(() => {
-    setIsOpen(Boolean(error) || window.sessionStorage.getItem(dismissalKey) !== "1");
-    setIsReady(true);
-  }, [dismissalKey, error]);
+    window.dispatchEvent(new Event(dismissalEvent));
+  }, [dismissalEvent, dismissalKey]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -43,7 +48,7 @@ export function ProfileNameCard({
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [dismiss, isOpen]);
 
-  if (!isReady || !isOpen) return null;
+  if (!isOpen) return null;
 
   return (
     <div

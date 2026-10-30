@@ -1,14 +1,22 @@
 import { NextResponse } from "next/server";
 import { authenticateApiRequest, readJsonBody } from "@/lib/api/auth";
 import {
+  workOrderStatuses,
   workOrderStatusSchema,
   workOrderStatusTransitions,
 } from "@/lib/validations/api";
+import { canTransitionOrder } from "@/lib/ordenes/workflow";
 
-type RouteContext = { params: { id: string } };
-const closedStatuses = new Set(["CALIDAD", "LISTO", "ENTREGADO"]);
+type RouteContext = { params: Promise<{ id: string }> };
+const diagnosisRequiredStatuses = new Set([
+  "PENDIENTE",
+  "CALIDAD",
+  "LISTO",
+  "ENTREGADO",
+]);
 
 export async function PATCH(request: Request, { params }: RouteContext) {
+  const { id } = await params;
   const auth = await authenticateApiRequest(["admin", "mecanico", "recepcionista"]);
   if (!auth.ok) return auth.response;
   const parsed = workOrderStatusSchema.safeParse(await readJsonBody(request));
@@ -22,7 +30,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const { data: order, error: readError } = await auth.supabase
     .from("ordenes_trabajo")
     .select("id, estado, mecanico_id, diagnostico")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (readError) {
     console.error("No se pudo leer la orden para cambiar su estado.", readError);
@@ -34,11 +42,29 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   }
 
   const nextStatus = parsed.data.estado;
-  if (!(workOrderStatusTransitions[order.estado as keyof typeof workOrderStatusTransitions] ?? []).includes(nextStatus)) {
-    return NextResponse.json({ error: "La transición de estado no está permitida." }, { status: 409 });
+  const currentStatus = workOrderStatuses.find(
+    (status) => status === order.estado,
+  );
+  if (!currentStatus) {
+    return NextResponse.json(
+      { error: "La orden tiene un estado no reconocido." },
+      { status: 409 },
+    );
+  }
+  if (!canTransitionOrder(auth.role, currentStatus, nextStatus)) {
+    const graphAllowsTransition =
+      workOrderStatusTransitions[currentStatus].includes(nextStatus);
+    return NextResponse.json(
+      {
+        error: graphAllowsTransition
+          ? "Tu rol no tiene permiso para realizar este cambio de estado."
+          : "La transición de estado no está permitida.",
+      },
+      { status: graphAllowsTransition ? 403 : 409 },
+    );
   }
   if (
-    closedStatuses.has(nextStatus) &&
+    diagnosisRequiredStatuses.has(nextStatus) &&
     !(parsed.data.diagnostico ?? order.diagnostico ?? "").trim()
   ) {
     return NextResponse.json(
@@ -53,7 +79,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const { count, error: photoError } = await auth.supabase
       .from("fotos_vehiculo")
       .select("id", { count: "exact", head: true })
-      .eq("orden_id", params.id)
+      .eq("orden_id", id)
       .eq("etapa", "salida");
     if (photoError) {
       console.error("No se pudieron comprobar las fotos de salida.", photoError);
@@ -83,11 +109,25 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const { data, error } = await auth.supabase
     .from("ordenes_trabajo")
     .update(changes)
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("estado", order.estado)
     .select("id, estado")
     .maybeSingle();
   if (error) {
+    if (error.code === "42501") {
+      return NextResponse.json(
+        { error: "Tu rol no tiene permiso para realizar este cambio de estado." },
+        { status: 403 },
+      );
+    }
+    if (error.code === "23514") {
+      return NextResponse.json(
+        { error: error.message },
+        {
+          status: error.message.toLowerCase().includes("transición") ? 409 : 422,
+        },
+      );
+    }
     console.error("No se pudo actualizar el estado de la orden.", error);
     return NextResponse.json({ error: "No se pudo actualizar la orden." }, { status: 500 });
   }

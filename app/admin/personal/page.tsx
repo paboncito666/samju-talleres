@@ -4,7 +4,7 @@ import { isProfileRole } from "@/lib/auth/permissions";
 import { StaffInvitationForm } from "./invitation-form";
 
 interface PageProps {
-  searchParams: { actualizado?: string };
+  searchParams: Promise<{ actualizado?: string }>;
 }
 
 export const dynamic = "force-dynamic";
@@ -21,6 +21,7 @@ function getRoleLabel(role: unknown) {
 }
 
 export default async function StaffRolesPage({ searchParams }: PageProps) {
+  const filters = await searchParams;
   const supabase = await createSupabaseServerClient();
   const { data: profiles, error } = await supabase
     .from("profiles")
@@ -42,7 +43,7 @@ export default async function StaffRolesPage({ searchParams }: PageProps) {
         </p>
       </header>
 
-      {searchParams.actualizado === "1" && (
+      {filters.actualizado === "1" && (
         <p className="rounded-xl border border-sage-foreground/20 bg-white p-4 text-sm text-ink" role="status">
           El rol se actualizó correctamente.
         </p>

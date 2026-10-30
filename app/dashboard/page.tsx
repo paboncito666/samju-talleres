@@ -6,8 +6,12 @@ import { RealtimeRefresher } from "@/app/components/realtime/realtime-refresher"
 import { ACTIVE_STATUSES, ESTADOS } from "@/lib/estados";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+function getStaleDays(lastAdvance: string) {
+  return Math.floor((Date.now() - new Date(lastAdvance).getTime()) / 86_400_000);
+}
+
 interface DashboardPageProps {
-  searchParams: { profileNameError?: string; profileNameUpdated?: string };
+  searchParams: Promise<{ profileNameError?: string; profileNameUpdated?: string }>;
 }
 
 export const dynamic = "force-dynamic";
@@ -18,6 +22,7 @@ const colors = [
 ];
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const notices = await searchParams;
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -68,7 +73,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       return {
         ...order,
         lastAdvance,
-        staleDays: Math.floor((Date.now() - new Date(lastAdvance).getTime()) / 86_400_000),
+        staleDays: getStaleDays(lastAdvance),
       };
     })
     .filter((order) => order.staleDays >= alertThresholdDays)
@@ -105,9 +110,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <Link className="rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white hover:bg-ink/90" href="/ordenes">Ver órdenes</Link>
       </header>
       {!profileResult.data.nombre_confirmado && (
-        <ProfileNameCard error={searchParams.profileNameError} userId={user.id} />
+        <ProfileNameCard error={notices.profileNameError} userId={user.id} />
       )}
-      {searchParams.profileNameUpdated === "1" && (
+      {notices.profileNameUpdated === "1" && (
         <p className="rounded-xl border border-sage-foreground/20 bg-white p-4 text-sm text-ink" role="status">
           Tu nombre se actualizó correctamente.
         </p>

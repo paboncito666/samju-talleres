@@ -8,8 +8,9 @@ export const dynamic = "force-dynamic";
 export default async function NewWorkOrderPage({
   searchParams,
 }: {
-  searchParams: { vehiculoId?: string };
+  searchParams: Promise<{ vehiculoId?: string }>;
 }) {
+  const filters = await searchParams;
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError) throw new Error(`No se pudo validar la sesión: ${userError.message}`);
@@ -47,7 +48,7 @@ export default async function NewWorkOrderPage({
         <WorkOrderForm
           vehicles={vehicles}
           mechanics={mechanics}
-          initialVehicleId={searchParams.vehiculoId ?? ""}
+          initialVehicleId={filters.vehiculoId ?? ""}
         />
       )}
     </main>

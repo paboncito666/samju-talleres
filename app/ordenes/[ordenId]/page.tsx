@@ -17,6 +17,7 @@ import { PhotoGallery } from "@/app/components/ordenes/photo-gallery";
 import { StatusControls } from "@/app/components/ordenes/status-controls";
 import { RealtimeRefresher } from "@/app/components/realtime/realtime-refresher";
 import { resolveVehiclePhotoUrls } from "@/lib/storage/photos";
+import { isProfileRole } from "@/lib/auth/permissions";
 import type { WorkOrderStatus } from "@/lib/validations/api";
 import { InternalNotes } from "./internal-notes";
 import { WorkItems } from "./work-items";
@@ -73,9 +74,24 @@ function isHttpUrl(value: string) {
 export default async function WorkOrderDetailPage({
   params,
 }: {
-  params: { ordenId: string };
+  params: Promise<{ ordenId: string }>;
 }) {
+  const { ordenId } = await params;
   const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError) throw new Error(`No se pudo validar la sesión: ${userError.message}`);
+  if (!user) notFound();
+  const { data: currentProfile, error: profileError } = await supabase
+    .from("profiles")
+    .select("rol")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (profileError) throw new Error(`No se pudo consultar el rol: ${profileError.message}`);
+  if (!currentProfile || !isProfileRole(currentProfile.rol)) notFound();
+
   const { data: orden, error: ordenError } = await supabase
     .from("ordenes_trabajo")
     .select(
@@ -115,7 +131,7 @@ export default async function WorkOrderDetailPage({
         )
       `,
     )
-    .eq("id", params.ordenId)
+    .eq("id", ordenId)
     .maybeSingle();
 
   if (ordenError) {
@@ -438,6 +454,7 @@ export default async function WorkOrderDetailPage({
             initialDiagnosis={orden.diagnostico ?? ""}
             hasExitPhoto={hasExitPhoto}
             orderId={orden.id}
+            role={currentProfile.rol}
           />
           <PhotoUpload orderId={orden.id} />
         </section>

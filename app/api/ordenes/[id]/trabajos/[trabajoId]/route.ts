@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { authenticateApiRequest, readJsonBody } from "@/lib/api/auth";
 import { workItemUpdateSchema } from "@/lib/validations/api";
 
-type RouteContext = { params: { id: string; trabajoId: string } };
+type RouteContext = { params: Promise<{ id: string; trabajoId: string }> };
 
 export async function PATCH(request: Request, { params }: RouteContext) {
+  const { id, trabajoId } = await params;
   const auth = await authenticateApiRequest(["admin", "mecanico", "recepcionista"]);
   if (!auth.ok) return auth.response;
 
@@ -19,8 +20,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const { data, error } = await auth.supabase
     .from("trabajos_realizados")
     .update(parsed.data)
-    .eq("id", params.trabajoId)
-    .eq("orden_id", params.id)
+    .eq("id", trabajoId)
+    .eq("orden_id", id)
     .select("id, orden_id, descripcion, tipo, completado, creado_en")
     .maybeSingle();
   if (error) {
