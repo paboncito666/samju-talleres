@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   ChevronDown,
   LogOut,
@@ -23,6 +23,37 @@ const fontSizeLabels: Record<FontSizePreference, string> = {
   large: "Grande",
 };
 
+function useStoredPreference<T extends string>(
+  key: string,
+  fallback: T,
+  isValid: (value: string) => value is T,
+) {
+  const eventName = `samju-preference:${key}`;
+  const subscribe = useCallback((callback: () => void) => {
+    window.addEventListener(eventName, callback);
+    return () => window.removeEventListener(eventName, callback);
+  }, [eventName]);
+  const getSnapshot = useCallback(() => {
+    const value = window.localStorage.getItem(key);
+    return value && isValid(value) ? value : fallback;
+  }, [fallback, isValid, key]);
+  const value = useSyncExternalStore(subscribe, getSnapshot, () => fallback);
+  const setValue = useCallback((nextValue: T) => {
+    window.localStorage.setItem(key, nextValue);
+    window.dispatchEvent(new Event(eventName));
+  }, [eventName, key]);
+
+  return [value, setValue] as const;
+}
+
+function isThemePreference(value: string): value is ThemePreference {
+  return value === "light" || value === "dark";
+}
+
+function isFontSizePreference(value: string): value is FontSizePreference {
+  return value === "small" || value === "normal" || value === "large";
+}
+
 export function UserMenu({
   avatarUrl,
   email,
@@ -37,28 +68,17 @@ export function UserMenu({
   signOutAction: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState<ThemePreference>("light");
-  const [fontSize, setFontSize] = useState<FontSizePreference>("normal");
+  const [theme, setTheme] = useStoredPreference("samju-theme", "light", isThemePreference);
+  const [fontSize, setFontSize] = useStoredPreference("samju-font-size", "normal", isFontSizePreference);
   const menuRef = useRef<HTMLDivElement>(null);
   const safeAvatarUrl = avatarUrl?.startsWith("https://") ? avatarUrl : null;
 
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem("samju-theme");
-    const savedFontSize = window.localStorage.getItem("samju-font-size");
-    if (savedTheme === "dark" || savedTheme === "light") setTheme(savedTheme);
-    if (savedFontSize === "small" || savedFontSize === "normal" || savedFontSize === "large") {
-      setFontSize(savedFontSize);
-    }
-  }, []);
-
-  useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem("samju-theme", theme);
   }, [theme]);
 
   useEffect(() => {
     document.documentElement.dataset.fontSize = fontSize;
-    window.localStorage.setItem("samju-font-size", fontSize);
   }, [fontSize]);
 
   useEffect(() => {
@@ -161,7 +181,9 @@ export function UserMenu({
               Tamaño de texto
               <select
                 className="ml-auto rounded-lg border border-line bg-white px-2 py-1.5 text-xs text-ink"
-                onChange={(event) => setFontSize(event.target.value as FontSizePreference)}
+                onChange={(event) => {
+                  if (isFontSizePreference(event.target.value)) setFontSize(event.target.value);
+                }}
                 value={fontSize}
               >
                 {Object.entries(fontSizeLabels).map(([value, label]) => (

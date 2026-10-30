@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { authenticateApiRequest, readJsonBody } from "@/lib/api/auth";
 import { workItemCreateSchema } from "@/lib/validations/api";
 
-type RouteContext = { params: { id: string } };
+type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: RouteContext) {
+  const { id } = await params;
   const auth = await authenticateApiRequest(["admin", "mecanico", "recepcionista"]);
   if (!auth.ok) return auth.response;
 
@@ -19,7 +20,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   const { data: order, error: orderError } = await auth.supabase
     .from("ordenes_trabajo")
     .select("id")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (orderError) {
     console.error("No se pudo verificar la orden para agregar un trabajo.", orderError);
@@ -29,7 +30,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   const { data, error } = await auth.supabase
     .from("trabajos_realizados")
-    .insert({ ...parsed.data, orden_id: params.id })
+    .insert({ ...parsed.data, orden_id: id })
     .select("id, orden_id, descripcion, tipo, completado, creado_en")
     .single();
   if (error) {

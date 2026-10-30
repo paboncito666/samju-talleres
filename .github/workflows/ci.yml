@@ -1,17 +1,25 @@
 name: CI
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
       - develop
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
-    name: Lint and type-check
+    name: Validate application
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -19,11 +27,61 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - name: Install dependencies
         run: npm ci
       - name: Run ESLint
         run: npm run lint
+      - name: Run tests
+        run: npm test
       - name: Check TypeScript
         run: npm run type-check
+      - name: Check production dependency security
+        run: npm audit --omit=dev
+      - name: Build production Docker image
+        run: >-
+          docker build
+          --build-arg NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co
+          --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=ci-placeholder-key
+          --tag samju-talleres:ci
+          .
+
+  deploy-production:
+    name: Deploy production to Vercel
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    concurrency:
+      group: vercel-production
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Link Vercel project
+        run: |
+          : "${VERCEL_PROJECT_ID:?Add VERCEL_PROJECT_ID to GitHub Actions secrets}"
+          : "${VERCEL_ORG_ID:?Add VERCEL_ORG_ID to GitHub Actions secrets}"
+          mkdir -p .vercel
+          printf '{"projectId":"%s","orgId":"%s"}' "$VERCEL_PROJECT_ID" "$VERCEL_ORG_ID" > .vercel/project.json
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Pull production settings
+        run: npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - name: Build for production
+        run: npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy production
+        run: npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

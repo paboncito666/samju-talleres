@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { authenticateApiRequest, readJsonBody } from "@/lib/api/auth";
 import { vehicleUpdateSchema } from "@/lib/validations/api";
 
-type RouteContext = { params: { id: string } };
+type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, { params }: RouteContext) {
+  const { id } = await params;
   const auth = await authenticateApiRequest(["admin", "recepcionista"]);
   if (!auth.ok) return auth.response;
 
@@ -19,7 +20,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const { data, error } = await auth.supabase
     .from("vehiculos")
     .update(parsed.data)
-    .eq("id", params.id)
+    .eq("id", id)
     .select("id, placa, marca, modelo, anio, color, kilometraje, propietario_nombre, propietario_telefono")
     .maybeSingle();
 

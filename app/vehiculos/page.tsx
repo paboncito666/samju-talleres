@@ -6,22 +6,23 @@ import { RealtimeRefresher } from "@/app/components/realtime/realtime-refresher"
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: {
+  searchParams: Promise<{
     q?: string;
     estado?: string;
     mecanicoId?: string;
     desde?: string;
     hasta?: string;
     verTodos?: string;
-  };
+  }>;
 }
 
 export default async function VehiclesPage({ searchParams }: PageProps) {
+  const filters = await searchParams;
   const supabase = await createSupabaseServerClient();
-  const queryText = searchParams.q?.trim().replace(/[%_,]/g, "") ?? "";
-  const statusFilter = Object.keys(ESTADOS).find((status) => status === searchParams.estado);
-  const includeAllVehicles = searchParams.verTodos === "1";
-  const hasOrderFilters = Boolean(statusFilter || searchParams.mecanicoId || searchParams.desde || searchParams.hasta);
+  const queryText = filters.q?.trim().replace(/[%_,]/g, "") ?? "";
+  const statusFilter = Object.keys(ESTADOS).find((status) => status === filters.estado);
+  const includeAllVehicles = filters.verTodos === "1";
+  const hasOrderFilters = Boolean(statusFilter || filters.mecanicoId || filters.desde || filters.hasta);
   const [{ data: staff, error: staffError }, { data: vehicles, error: vehicleError }] =
     await Promise.all([
       supabase.from("profiles").select("id, nombre").eq("rol", "mecanico").eq("activo", true).order("nombre"),
@@ -52,9 +53,9 @@ export default async function VehiclesPage({ searchParams }: PageProps) {
       .limit(1000);
     if (statusFilter) orderQuery = orderQuery.eq("estado", statusFilter);
     else if (!includeAllVehicles) orderQuery = orderQuery.in("estado", [...ACTIVE_STATUSES]);
-    if (searchParams.mecanicoId) orderQuery = orderQuery.eq("mecanico_id", searchParams.mecanicoId);
-    if (searchParams.desde) orderQuery = orderQuery.gte("fecha_ingreso", `${searchParams.desde}T00:00:00`);
-    if (searchParams.hasta) orderQuery = orderQuery.lte("fecha_ingreso", `${searchParams.hasta}T23:59:59`);
+    if (filters.mecanicoId) orderQuery = orderQuery.eq("mecanico_id", filters.mecanicoId);
+    if (filters.desde) orderQuery = orderQuery.gte("fecha_ingreso", `${filters.desde}T00:00:00`);
+    if (filters.hasta) orderQuery = orderQuery.lte("fecha_ingreso", `${filters.hasta}T23:59:59`);
     const result = await orderQuery;
     if (result.error) throw new Error(`No se pudieron filtrar las órdenes: ${result.error.message}`);
     orders = result.data;
@@ -71,11 +72,11 @@ export default async function VehiclesPage({ searchParams }: PageProps) {
       <RealtimeRefresher tables={["ordenes_trabajo", "vehiculos"]} />
       <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Flota del taller</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink">Vehículos</h1><p className="mt-2 text-sm text-muted">Busca por placa o propietario y revisa el historial de servicio.</p></div><Link className="rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white" href="/vehiculos/nuevo">Registrar vehículo</Link></header>
       <form className="grid gap-3 rounded-2xl border border-line bg-white p-4 shadow-soft sm:grid-cols-2 lg:grid-cols-6" method="get">
-        <label className="text-xs font-medium text-muted lg:col-span-2">Placa o propietario<input className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" name="q" defaultValue={searchParams.q} placeholder="Ej. ABC-123" /></label>
+        <label className="text-xs font-medium text-muted lg:col-span-2">Placa o propietario<input className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" name="q" defaultValue={filters.q} placeholder="Ej. ABC-123" /></label>
         <label className="text-xs font-medium text-muted">Estado de orden<select className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" name="estado" defaultValue={statusFilter ?? ""}><option value="">Todos los estados activos</option>{Object.entries(ESTADOS).map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}</select></label>
-        <label className="text-xs font-medium text-muted">Mecánico<select className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" name="mecanicoId" defaultValue={searchParams.mecanicoId ?? ""}><option value="">Todos</option>{staff.map((person) => <option key={person.id} value={person.id}>{person.nombre}</option>)}</select></label>
-        <label className="text-xs font-medium text-muted">Desde<input className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" type="date" name="desde" defaultValue={searchParams.desde} /></label>
-        <label className="text-xs font-medium text-muted">Hasta<input className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" type="date" name="hasta" defaultValue={searchParams.hasta} /></label>
+        <label className="text-xs font-medium text-muted">Mecánico<select className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" name="mecanicoId" defaultValue={filters.mecanicoId ?? ""}><option value="">Todos</option>{staff.map((person) => <option key={person.id} value={person.id}>{person.nombre}</option>)}</select></label>
+        <label className="text-xs font-medium text-muted">Desde<input className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" type="date" name="desde" defaultValue={filters.desde} /></label>
+        <label className="text-xs font-medium text-muted">Hasta<input className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" type="date" name="hasta" defaultValue={filters.hasta} /></label>
         <label className="flex items-center gap-2 text-xs font-medium text-muted lg:col-span-3"><input type="checkbox" name="verTodos" value="1" defaultChecked={includeAllVehicles} />Incluir vehículos sin órdenes activas</label>
         <div className="flex gap-2 lg:col-span-6"><button className="rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white" type="submit">Aplicar filtros</button><Link className="rounded-lg border border-line px-4 py-2.5 text-sm font-medium text-ink" href="/vehiculos">Limpiar</Link></div>
       </form>

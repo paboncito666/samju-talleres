@@ -66,8 +66,9 @@ function isHttpUrl(value: string) {
 export default async function VehicleHistoryPage({
   params,
 }: {
-  params: { vehiculoId: string };
+  params: Promise<{ vehiculoId: string }>;
 }) {
+  const { vehiculoId } = await params;
   const supabase = await createSupabaseServerClient();
 
   const { data: vehiculo, error: vehiculoError } = await supabase
@@ -75,7 +76,7 @@ export default async function VehicleHistoryPage({
     .select(
       "id, placa, marca, modelo, anio, color, kilometraje, propietario_nombre",
     )
-    .eq("id", params.vehiculoId)
+    .eq("id", vehiculoId)
     .maybeSingle();
 
   if (vehiculoError) {

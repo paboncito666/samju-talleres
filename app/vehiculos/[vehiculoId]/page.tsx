@@ -16,13 +16,14 @@ const numberFormatter = new Intl.NumberFormat("es-MX");
 export default async function VehicleDetailPage({
   params,
 }: {
-  params: { vehiculoId: string };
+  params: Promise<{ vehiculoId: string }>;
 }) {
+  const { vehiculoId } = await params;
   const supabase = await createSupabaseServerClient();
   const { data: vehicle, error: vehicleError } = await supabase
     .from("vehiculos")
     .select("id, placa, marca, modelo, anio, color, kilometraje, propietario_nombre, propietario_telefono")
-    .eq("id", params.vehiculoId)
+    .eq("id", vehiculoId)
     .maybeSingle();
   if (vehicleError) throw new Error(`No se pudo cargar el vehículo: ${vehicleError.message}`);
   if (!vehicle) notFound();

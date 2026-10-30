@@ -82,7 +82,7 @@ export const workOrderStatusTransitions: Record<
   readonly WorkOrderStatus[]
 > = {
   RECIBIDO: ["DIAGNOSTICO"],
-  DIAGNOSTICO: ["PENDIENTE", "REPARACION", "CANCELADO"],
+  DIAGNOSTICO: ["PENDIENTE", "REPARACION"],
   PENDIENTE: ["REPARACION", "CANCELADO"],
   REPARACION: ["CALIDAD"],
   CALIDAD: ["REPARACION", "LISTO", "CANCELADO"],

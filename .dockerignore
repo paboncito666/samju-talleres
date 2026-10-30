@@ -1,0 +1,13 @@
+.git
+.github
+.next
+node_modules
+coverage
+out
+build
+.vercel
+.env
+.env.*
+!.env.example
+samju-talleres
+npm-debug.log*

@@ -2,12 +2,12 @@
 
 Aplicación web para uso interno del administrador, recepción y mecánicos del
 taller. Los clientes no acceden a la plataforma. La aplicación canónica está
-en la raíz del repositorio y utiliza Next.js 14 App Router, React, TypeScript,
+en la raíz del repositorio y utiliza Next.js 16 App Router, React 19, TypeScript,
 Tailwind CSS y Supabase.
 
 ## Inicio local
 
-Requisitos: Node.js 20 o superior, npm y un proyecto Supabase.
+Requisitos: Node.js 22 o superior, npm y un proyecto Supabase.
 
 ```powershell
 npm ci
@@ -34,9 +34,27 @@ Visita `http://localhost:3000`.
 | --- | --- |
 | `npm run dev` | Desarrollo local |
 | `npm run lint` | ESLint |
+| `npm test` | Pruebas unitarias |
 | `npm run type-check` | Comprobación de TypeScript |
 | `npm run build` | Build de producción |
 | `npm run seed:demo` | Carga datos ficticios (solo desarrollo) |
+
+## Docker local
+
+Instala Docker Desktop y crea `.env.local` con las variables de Supabase que
+aparecen en `.env.example`. Desde la raíz:
+
+```powershell
+docker compose --env-file .env.local up --build
+```
+
+La aplicación estará en `http://localhost:3000`; `docker compose down` la
+detiene. El contenedor usa una imagen de producción mínima, ejecuta Next.js
+como usuario sin privilegios y consulta `/api/health`. Las claves públicas de
+Supabase se incorporan al build del cliente; `SUPABASE_SERVICE_ROLE_KEY` se
+mantiene como variable de entorno de ejecución y nunca se copia a la imagen.
+Este Compose levanta la aplicación y se conecta al proyecto Supabase
+configurado; no crea una instancia local de Supabase.
 
 ## Configuración de Supabase
 
@@ -88,7 +106,12 @@ de estado. El detalle del vehículo reúne sus órdenes activas, fotos y enlace 
 historial de servicios cerrados. La lista de vehículos muestra por defecto los
 que tienen órdenes activas; el filtro permite incluir los demás.
 
-En Vercel configura el directorio raíz del proyecto como `.` para desplegar esta
-aplicación Next.js 14. La conexión del repositorio, variables de entorno y
-despliegue automático de `main` deben configurarse en el panel de Vercel.
-GitHub Actions ejecuta lint y type-check en Pull Requests a `main` y `develop`.
+El workflow de GitHub Actions ejecuta lint, pruebas, type-check, auditoría de
+dependencias de producción y build en Pull Requests a `main` y `develop`, así
+como en cada push a `main`. Tras pasar las comprobaciones, despliega producción
+en Vercel. Configura los secretos `VERCEL_TOKEN`, `VERCEL_ORG_ID` y
+`VERCEL_PROJECT_ID` en **Settings → Secrets and variables → Actions** de GitHub;
+obtén los IDs del proyecto vinculado con `vercel link` o de `.vercel/project.json`.
+Configura las variables de entorno de aplicación en los ajustes de Vercel.
+Desactiva el despliegue automático de Git de Vercel para `main` para evitar
+despliegues duplicados; la promoción de producción la controla el workflow.
