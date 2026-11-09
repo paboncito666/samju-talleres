@@ -114,7 +114,7 @@ export function PhotoUpload({ orderId }: { orderId: string }) {
           Imagen
           <input accept="image/jpeg,image/png,image/webp" className="mt-1 block w-full text-sm text-ink" disabled={busy} multiple onChange={(event) => { setFiles(Array.from(event.target.files ?? [])); event.currentTarget.value = ""; setError(""); setNotice(""); }} type="file" />
         </label>
-        <button className="self-end rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50" disabled={busy || !files.length} onClick={upload} type="button">
+        <button className="self-end rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50" disabled={busy || !files.length} onClick={upload} type="button">
           {busy ? "Subiendo..." : "Subir fotografías"}
         </button>
       </div>

@@ -107,7 +107,7 @@ export function VehicleEditForm({ vehicle }: { vehicle: EditableVehicle }) {
           </div>
           {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
           <div className="flex flex-wrap gap-3">
-            <button className="rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50" disabled={busy} type="submit">
+            <button className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50" disabled={busy} type="submit">
               {busy ? "Guardando..." : "Guardar cambios"}
             </button>
             <button className="rounded-lg border border-line px-4 py-2.5 text-sm font-medium text-ink" disabled={busy} onClick={() => setEditing(false)} type="button">

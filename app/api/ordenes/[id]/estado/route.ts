@@ -90,7 +90,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
     if (!count) {
       return NextResponse.json(
-        { error: "Sube al menos una fotografía de salida antes de entregar el vehículo." },
+        { error: "Sube al menos una fotografía de salida antes de registrar la entrega al cliente." },
         { status: 422 },
       );
     }

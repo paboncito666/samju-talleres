@@ -19,6 +19,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PdfExportButton } from "@/app/components/pdf-export-button";
 import { resolveVehiclePhotoUrls } from "@/lib/storage/photos";
 import { RealtimeRefresher } from "@/app/components/realtime/realtime-refresher";
+import { ACTIVE_STATUSES } from "@/lib/estados";
+import { getVehicleServiceStatus } from "@/lib/vehiculos/status";
 
 export const dynamic = "force-dynamic";
 
@@ -85,45 +87,63 @@ export default async function VehicleHistoryPage({
 
   if (!vehiculo) notFound();
 
-  const { data: ordenes, error: ordenesError } = await supabase
-    .from("ordenes_trabajo")
-    .select(
-      `
-        id,
-        estado,
-        descripcion_trabajo,
-        diagnostico,
-        tipo_servicio,
-        fecha_ingreso,
-        fecha_estimada_entrega,
-        fecha_entrega_real,
-        observaciones,
-        motivo_cancelacion,
-        trabajos_realizados (
+  const [historyResult, activeOrdersResult] = await Promise.all([
+    supabase
+      .from("ordenes_trabajo")
+      .select(
+        `
           id,
-          descripcion,
-          tipo,
-          completado,
-          creado_en
-        ),
-        fotos_vehiculo (
-          id,
-          url,
-          etapa,
-          creado_en
-        )
-      `,
-    )
-    .eq("vehiculo_id", vehiculo.id)
-    .in("estado", ["ENTREGADO", "CANCELADO"])
-    .order("fecha_entrega_real", { ascending: false, nullsFirst: false })
-    .order("fecha_ingreso", { ascending: false });
+          estado,
+          descripcion_trabajo,
+          diagnostico,
+          tipo_servicio,
+          fecha_ingreso,
+          fecha_estimada_entrega,
+          fecha_entrega_real,
+          observaciones,
+          motivo_cancelacion,
+          trabajos_realizados (
+            id,
+            descripcion,
+            tipo,
+            completado,
+            creado_en
+          ),
+          fotos_vehiculo (
+            id,
+            url,
+            etapa,
+            creado_en
+          )
+        `,
+      )
+      .eq("vehiculo_id", vehiculo.id)
+      .in("estado", ["ENTREGADO", "CANCELADO"])
+      .order("fecha_entrega_real", { ascending: false, nullsFirst: false })
+      .order("fecha_ingreso", { ascending: false }),
+    supabase
+      .from("ordenes_trabajo")
+      .select("id")
+      .eq("vehiculo_id", vehiculo.id)
+      .in("estado", [...ACTIVE_STATUSES])
+      .limit(1),
+  ]);
 
-  if (ordenesError) {
+  if (historyResult.error) {
     throw new Error(
-      `No se pudo cargar el historial del vehículo: ${ordenesError.message}`,
+      `No se pudo cargar el historial del vehículo: ${historyResult.error.message}`,
     );
   }
+  if (activeOrdersResult.error) {
+    throw new Error(
+      `No se pudo consultar si el vehículo tiene órdenes activas: ${activeOrdersResult.error.message}`,
+    );
+  }
+  const ordenes = historyResult.data;
+  const vehicleStatus = getVehicleServiceStatus(
+    activeOrdersResult.data.length > 0,
+    ordenes.some((order) => order.estado === "ENTREGADO"),
+  );
 
   const ordenesVista = await Promise.all(
     ordenes.map(async (orden) => ({
@@ -150,7 +170,7 @@ export default async function VehicleHistoryPage({
             className="flex items-center gap-3"
             href="/"
           >
-            <span className="grid size-10 place-items-center rounded-xl bg-ink text-white">
+            <span className="grid size-10 place-items-center rounded-xl bg-primary text-white">
               <Wrench aria-hidden="true" size={19} strokeWidth={1.8} />
             </span>
             <span>
@@ -175,7 +195,7 @@ export default async function VehicleHistoryPage({
           </Link>
         </div>
 
-        <section className="overflow-hidden rounded-2xl bg-ink text-white shadow-soft">
+        <section className="overflow-hidden rounded-2xl bg-primary text-white shadow-soft">
           <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
               <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
@@ -204,6 +224,14 @@ export default async function VehicleHistoryPage({
                   <span>{vehiculo.propietario_nombre}</span>
                 )}
               </div>
+              <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white">
+                {vehicleStatus === "Entregado al cliente" ? (
+                  <CircleCheck aria-hidden="true" size={16} />
+                ) : (
+                  <Clock3 aria-hidden="true" size={16} />
+                )}
+                {vehicleStatus}
+              </span>
             </div>
             {vehiculo.kilometraje !== null && (
               <div className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-3 lg:min-w-48">
@@ -272,7 +300,7 @@ export default async function VehicleHistoryPage({
                       number: orden.id.toUpperCase(),
                       status:
                         orden.estado === "ENTREGADO"
-                          ? "Entregada"
+                          ? "Entregado al cliente"
                           : "Cancelada",
                       description: orden.descripcion_trabajo,
                       diagnosis: orden.diagnostico ?? "",
@@ -364,7 +392,7 @@ export default async function VehicleHistoryPage({
                         ) : (
                           <Clock3 aria-hidden="true" size={14} />
                         )}
-                        {entregada ? "Entregada" : "Cancelada"}
+                        {entregada ? "Entregado al cliente" : "Cancelada"}
                       </span>
                     </div>
 
@@ -378,7 +406,7 @@ export default async function VehicleHistoryPage({
                           <span className="inline-flex items-center gap-1.5">
                             <Check aria-hidden="true" size={14} />
                             {entregada
-                              ? `Cierre: ${formatDate(orden.fecha_entrega_real)}`
+                              ? `Entregado al cliente: ${formatDate(orden.fecha_entrega_real)}`
                               : "Orden cancelada"}
                           </span>
                         </div>

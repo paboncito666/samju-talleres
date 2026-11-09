@@ -13,7 +13,7 @@ export default function RegisterPage() {
         Las cuentas del equipo las crea el administrador. Solicita una invitación para acceder.
       </p>
       <Link
-        className="mt-6 inline-flex rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-white"
+        className="mt-6 inline-flex rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white"
         href="/login"
       >
         Volver a iniciar sesión

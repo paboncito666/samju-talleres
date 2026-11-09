@@ -10,7 +10,7 @@ export const ESTADOS: Record<
   REPARACION: { label: "En reparación", color: "bg-estado-reparacion text-estado-reparacion-text" },
   CALIDAD: { label: "Control de calidad", color: "bg-estado-calidad text-estado-calidad-text" },
   LISTO: { label: "Listo para entrega", color: "bg-estado-listo text-estado-listo-text" },
-  ENTREGADO: { label: "Entregado", color: "bg-estado-entregado text-estado-entregado-text" },
+  ENTREGADO: { label: "Entregado al cliente", color: "bg-estado-entregado text-estado-entregado-text" },
   CANCELADO: { label: "Cancelado", color: "bg-estado-cancelado text-estado-cancelado-text" },
 };
 

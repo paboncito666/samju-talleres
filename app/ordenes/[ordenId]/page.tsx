@@ -54,7 +54,7 @@ const statusLabels: Record<string, string> = {
   REPARACION: "En reparación",
   CALIDAD: "Control de calidad",
   LISTO: "Listo para entregar",
-  ENTREGADO: "Entregado",
+  ENTREGADO: "Entregado al cliente",
   CANCELADO: "Cancelado",
 };
 
@@ -216,7 +216,7 @@ export default async function WorkOrderDetailPage({
             className="flex items-center gap-3"
             href="/"
           >
-            <span className="grid size-10 place-items-center rounded-xl bg-ink text-white">
+            <span className="grid size-10 place-items-center rounded-xl bg-primary text-white">
               <Wrench aria-hidden="true" size={19} strokeWidth={1.8} />
             </span>
             <span>

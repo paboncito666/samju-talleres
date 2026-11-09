@@ -61,6 +61,11 @@ export function StatusControls({
   return (
     <section className="rounded-2xl border border-line bg-white p-5 shadow-soft">
       <h2 className="text-sm font-semibold text-ink">Seguimiento de la orden</h2>
+      {currentStatus === "LISTO" && role === "recepcionista" && (
+        <p className="mt-2 text-sm leading-5 text-muted">
+          El trabajo ya terminó. Marca «Entregado al cliente» solo cuando hayas devuelto el vehículo; hasta entonces, la orden sigue activa.
+        </p>
+      )}
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <label className="text-xs font-medium text-muted">
           Próximo estado
@@ -76,9 +81,9 @@ export function StatusControls({
         {status === "CANCELADO" && <label className="text-xs font-medium text-muted md:col-span-2">Motivo de cancelación<textarea className="mt-1.5 block w-full rounded-lg border border-line px-3 py-2.5 text-sm text-ink" maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} /></label>}
       </div>
       {needsDiagnosis && !diagnosis.trim() && <p className="mt-3 text-xs text-muted">El diagnóstico es obligatorio antes de solicitar aprobación, control de calidad o cierre.</p>}
-      {needsExitPhoto && <p className="mt-3 text-xs text-muted">Sube al menos una fotografía de salida en la sección de fotografías antes de entregar el vehículo.</p>}
+      {needsExitPhoto && <p className="mt-3 text-xs text-muted">Sube al menos una fotografía de salida en la sección de fotografías antes de registrar la entrega al cliente.</p>}
       {error && <p className="mt-3 text-sm text-red-700" role="alert">{error}</p>}
-      <button className="mt-4 rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50" disabled={busy || !options.length || status === currentStatus || (needsDiagnosis && !diagnosis.trim()) || needsExitPhoto || (status === "CANCELADO" && !reason.trim())} onClick={save} type="button">
+      <button className="mt-4 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50" disabled={busy || !options.length || status === currentStatus || (needsDiagnosis && !diagnosis.trim()) || needsExitPhoto || (status === "CANCELADO" && !reason.trim())} onClick={save} type="button">
         {busy ? "Guardando..." : "Actualizar orden"}
       </button>
       {workOrderStatuses.includes(currentStatus) && !options.length && (
