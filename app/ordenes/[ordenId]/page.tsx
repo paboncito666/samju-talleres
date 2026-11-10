@@ -21,6 +21,7 @@ import { isProfileRole } from "@/lib/auth/permissions";
 import type { WorkOrderStatus } from "@/lib/validations/api";
 import { InternalNotes } from "./internal-notes";
 import { WorkItems } from "./work-items";
+import { ArchiveOrderButton } from "./archive-order-button";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,7 @@ const statusLabels: Record<string, string> = {
   REPARACION: "En reparación",
   CALIDAD: "Control de calidad",
   LISTO: "Listo para entregar",
-  ENTREGADO: "Entregado",
+  ENTREGADO: "Entregado al cliente",
   CANCELADO: "Cancelado",
 };
 
@@ -107,6 +108,7 @@ export default async function WorkOrderDetailPage({
         fecha_ingreso,
         fecha_estimada_entrega,
         fecha_entrega_real,
+        archivada_en,
         observaciones,
         motivo_cancelacion,
         trabajos_realizados (
@@ -216,7 +218,7 @@ export default async function WorkOrderDetailPage({
             className="flex items-center gap-3"
             href="/"
           >
-            <span className="grid size-10 place-items-center rounded-xl bg-ink text-white">
+            <span className="grid size-10 place-items-center rounded-xl bg-primary text-white">
               <Wrench aria-hidden="true" size={19} strokeWidth={1.8} />
             </span>
             <span>
@@ -256,6 +258,11 @@ export default async function WorkOrderDetailPage({
               <span className="rounded-full bg-mist px-3 py-1.5 text-xs font-semibold text-ink">
                 {statusLabels[orden.estado] ?? orden.estado}
               </span>
+              {orden.archivada_en && (
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
+                  Archivada
+                </span>
+              )}
               <PdfExportButton
                 label="Exportar resumen PDF"
                 report={{
@@ -316,6 +323,9 @@ export default async function WorkOrderDetailPage({
                   },
                 }}
               />
+              {currentProfile.rol === "admin" && !orden.archivada_en && (
+                <ArchiveOrderButton orderId={orden.id} vehicleId={orden.vehiculo_id} />
+              )}
             </div>
           </div>
 
@@ -448,20 +458,38 @@ export default async function WorkOrderDetailPage({
           </div>
         </section>
 
+        {orden.archivada_en && (
+          <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+            Esta orden está archivada y se conserva como parte del historial del vehículo.
+          </p>
+        )}
+
         <section className="mt-6 grid gap-5 lg:grid-cols-2">
-          <StatusControls
-            currentStatus={orden.estado as WorkOrderStatus}
-            initialDiagnosis={orden.diagnostico ?? ""}
-            hasExitPhoto={hasExitPhoto}
-            orderId={orden.id}
-            role={currentProfile.rol}
-          />
-          <PhotoUpload orderId={orden.id} />
+          {orden.archivada_en ? (
+            <section className="rounded-2xl border border-line bg-white p-5 shadow-soft">
+              <h2 className="text-sm font-semibold text-ink">Orden archivada</h2>
+              <p className="mt-1 text-sm text-muted">
+                Estado al archivar: {statusLabels[orden.estado] ?? orden.estado}
+              </p>
+            </section>
+          ) : (
+            <>
+              <StatusControls
+                currentStatus={orden.estado as WorkOrderStatus}
+                initialDiagnosis={orden.diagnostico ?? ""}
+                hasExitPhoto={hasExitPhoto}
+                orderId={orden.id}
+                role={currentProfile.rol}
+              />
+              <PhotoUpload orderId={orden.id} />
+            </>
+          )}
         </section>
         <section className="mt-5">
           <WorkItems
             initialItems={orden.trabajos_realizados ?? []}
             orderId={orden.id}
+            readOnly={Boolean(orden.archivada_en)}
           />
         </section>
         <section className="mt-5">
@@ -514,6 +542,7 @@ export default async function WorkOrderDetailPage({
                 : "Personal del taller",
             }))}
             orderId={orden.id}
+            readOnly={Boolean(orden.archivada_en)}
           />
         </section>
 

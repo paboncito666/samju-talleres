@@ -227,7 +227,7 @@ export function AccountSettings({
               />
             </label>
             <button
-              className="rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
               disabled={busy === "avatar" || !avatarFile}
               type="submit"
             >
@@ -253,7 +253,7 @@ export function AccountSettings({
             required
             value={nameValue}
           />
-          <button className="rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50" disabled={busy === "name"} type="submit">
+          <button className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50" disabled={busy === "name"} type="submit">
             {busy === "name" ? "Guardando..." : "Actualizar nombre"}
           </button>
         </form>
@@ -276,7 +276,7 @@ export function AccountSettings({
             type="email"
             value={emailValue}
           />
-          <button className="rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50" disabled={busy === "email"} type="submit">
+          <button className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50" disabled={busy === "email"} type="submit">
             {busy === "email" ? "Solicitando..." : "Cambiar correo"}
           </button>
         </form>
@@ -311,7 +311,7 @@ export function AccountSettings({
               value={confirmPassword}
             />
           </label>
-          <button className="justify-self-start rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 sm:col-span-2" disabled={busy === "password"} type="submit">
+          <button className="justify-self-start rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 sm:col-span-2" disabled={busy === "password"} type="submit">
             {busy === "password" ? "Actualizando..." : "Cambiar contraseña"}
           </button>
         </form>

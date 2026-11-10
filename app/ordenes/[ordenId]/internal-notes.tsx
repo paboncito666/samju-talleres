@@ -31,9 +31,11 @@ const dateFormatter = new Intl.DateTimeFormat("es-MX", {
 export function InternalNotes({
   initialNotes,
   orderId,
+  readOnly = false,
 }: {
   initialNotes: Note[];
   orderId: string;
+  readOnly?: boolean;
 }) {
   const [notes, setNotes] = useState(initialNotes);
   const [content, setContent] = useState("");
@@ -97,8 +99,8 @@ export function InternalNotes({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-      <form
+    <div className={`grid gap-6 ${readOnly ? "" : "lg:grid-cols-[0.85fr_1.15fr]"}`}>
+      {!readOnly && <form
         className="h-fit rounded-2xl border border-line bg-white p-5 shadow-soft sm:p-6"
         onSubmit={handleSubmit}
       >
@@ -136,7 +138,7 @@ export function InternalNotes({
             {errorMessage || `${content.length}/2000 caracteres`}
           </p>
           <button
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white transition hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSubmitting || content.trim().length === 0}
             type="submit"
           >
@@ -144,7 +146,7 @@ export function InternalNotes({
             {isSubmitting ? "Guardando..." : "Publicar nota"}
           </button>
         </div>
-      </form>
+      </form>}
 
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">

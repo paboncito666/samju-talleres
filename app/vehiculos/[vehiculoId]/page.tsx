@@ -42,6 +42,7 @@ export default async function VehicleDetailPage({
     `)
     .eq("vehiculo_id", vehicle.id)
     .in("estado", [...ACTIVE_STATUSES])
+    .is("archivada_en", null)
     .order("fecha_ingreso", { ascending: false });
   if (ordersError) throw new Error(`No se pudieron consultar las órdenes activas: ${ordersError.message}`);
 
@@ -68,7 +69,7 @@ export default async function VehicleDetailPage({
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink">{vehicle.marca} {vehicle.modelo} {vehicle.anio ?? ""}</h1>
           <p className="mt-2 font-mono text-sm text-muted">{vehicle.placa}{vehicle.color ? ` · ${vehicle.color}` : ""}</p>
         </div>
-        <Link className="rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white" href={`/ordenes/nueva?vehiculoId=${vehicle.id}`}>
+        <Link className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white" href={`/ordenes/nueva?vehiculoId=${vehicle.id}`}>
           Abrir orden
         </Link>
       </header>
@@ -85,10 +86,12 @@ export default async function VehicleDetailPage({
       <section className="space-y-4">
         <div>
           <h2 className="text-xl font-semibold text-ink">Órdenes activas</h2>
-          <p className="mt-1 text-sm text-muted">Estado actual, asignación y fotografías de los servicios en curso.</p>
+          <p className="mt-1 text-sm text-muted">Cada orden tiene su propio estado. Al entregar una, solo se cierra esa orden; las demás y el registro del vehículo se conservan en su historial.</p>
         </div>
         {orders.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-line bg-white p-7 text-sm text-muted">Este vehículo no tiene órdenes activas.</div>
+          <div className="rounded-2xl border border-dashed border-line bg-white p-7 text-sm text-muted">
+            Este vehículo no tiene órdenes activas. Las órdenes entregadas o canceladas se conservan en su historial.
+          </div>
         ) : orders.map((order) => (
           <article className="space-y-4 rounded-2xl border border-line bg-white p-5 shadow-soft" key={order.id}>
             <div className="flex flex-wrap items-start justify-between gap-3">

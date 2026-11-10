@@ -37,17 +37,17 @@ export async function AppShell({
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-line bg-white">
+      <header className="relative z-20 border-b border-line bg-surface shadow-[0_8px_24px_-24px_rgba(27,54,42,0.6)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link className="flex items-center gap-3" href="/dashboard">
-            <span className="grid size-10 place-items-center rounded-xl bg-ink font-semibold text-white">S</span>
+          <Link className="group flex items-center gap-3" href="/dashboard">
+            <span className="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-primary to-[#456a52] font-semibold text-white shadow-md transition duration-200 group-hover:-rotate-3 group-hover:scale-105">S</span>
             <span><strong className="block text-sm tracking-[0.12em] text-ink">SAMJU</strong><span className="text-xs text-muted">Talleres · Personal</span></span>
           </Link>
           <nav aria-label="Navegación principal" className="flex flex-wrap items-center gap-2">
             {links.map(({ href, label }) => (
               <Link
                 aria-current={activePath === href ? "page" : undefined}
-                className={`rounded-lg px-3 py-2 text-sm ${activePath === href ? "bg-mist font-semibold text-ink" : "text-muted hover:bg-mist"}`}
+                className={`rounded-xl px-3 py-2 text-sm transition duration-200 ${activePath === href ? "bg-primary font-semibold text-white shadow-sm" : "text-muted hover:-translate-y-0.5 hover:bg-mist hover:text-ink"}`}
                 href={href}
                 key={href}
               >

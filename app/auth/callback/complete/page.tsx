@@ -153,7 +153,7 @@ export default function AuthCallbackCompletePage() {
         <p className="mt-3 text-sm text-muted" role="status">{message}</p>
         {message !== "Validando tu enlace de acceso..." && (
           <a
-            className="mt-6 inline-flex rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white"
+            className="mt-6 inline-flex rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white"
             href="/login"
           >
             Volver al inicio de sesión

@@ -11,7 +11,10 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        surface: "var(--surface)",
         ink: "var(--ink)",
+        primary: "var(--primary)",
+        "primary-hover": "var(--primary-hover)",
         muted: "var(--muted)",
         line: "var(--line)",
         mist: "var(--mist)",

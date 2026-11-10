@@ -78,7 +78,7 @@ export function PasswordSetupForm() {
         </p>
       )}
       <button
-        className="w-full rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+        className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
         disabled={busy}
         type="submit"
       >

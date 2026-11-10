@@ -85,7 +85,7 @@ export function AuthForm() {
           <input className="mt-1.5 w-full rounded-lg border border-line px-3 py-2.5" name="password" type="password" autoComplete="current-password" required />
         </label>
         {errorMessage && <p className="text-sm text-red-700" role="alert">{errorMessage}</p>}
-        <button className="w-full rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-white disabled:opacity-60" disabled={busy} type="submit">
+        <button className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white disabled:opacity-60" disabled={busy} type="submit">
           {busy ? "Procesando..." : "Iniciar sesión"}
         </button>
       </form>

@@ -42,7 +42,7 @@ export default async function NewWorkOrderPage({
       {vehicles.length === 0 ? (
         <section className="rounded-2xl border border-line bg-white p-6">
           <p className="text-sm text-muted">Primero registra un vehículo para poder abrir su orden.</p>
-          <Link className="mt-4 inline-flex rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-white" href="/vehiculos/nuevo">Registrar vehículo</Link>
+          <Link className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white" href="/vehiculos/nuevo">Registrar vehículo</Link>
         </section>
       ) : (
         <WorkOrderForm
