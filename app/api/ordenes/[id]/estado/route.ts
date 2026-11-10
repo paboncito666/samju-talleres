@@ -6,6 +6,7 @@ import {
   workOrderStatusTransitions,
 } from "@/lib/validations/api";
 import { canTransitionOrder } from "@/lib/ordenes/workflow";
+import { ACTIVE_STATUSES } from "@/lib/estados";
 
 type RouteContext = { params: Promise<{ id: string }> };
 const diagnosisRequiredStatuses = new Set([
@@ -29,7 +30,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   const { data: order, error: readError } = await auth.supabase
     .from("ordenes_trabajo")
-    .select("id, estado, mecanico_id, diagnostico")
+    .select("id, vehiculo_id, estado, mecanico_id, diagnostico, archivada_en")
     .eq("id", id)
     .maybeSingle();
   if (readError) {
@@ -37,6 +38,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "No se pudo consultar la orden." }, { status: 500 });
   }
   if (!order) return NextResponse.json({ error: "Orden no encontrada." }, { status: 404 });
+  if (order.archivada_en) {
+    return NextResponse.json({ error: "No se puede cambiar el estado de una orden archivada." }, { status: 409 });
+  }
   if (auth.role === "mecanico" && order.mecanico_id !== auth.userId) {
     return NextResponse.json({ error: "No tienes asignada esta orden." }, { status: 403 });
   }
@@ -76,6 +80,28 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Indica el motivo de cancelación." }, { status: 400 });
   }
   if (nextStatus === "ENTREGADO") {
+    const { data: otherActiveOrders, error: activeOrdersError } = await auth.supabase
+      .from("ordenes_trabajo")
+      .select("id")
+      .eq("vehiculo_id", order.vehiculo_id)
+      .neq("id", order.id)
+      .in("estado", [...ACTIVE_STATUSES])
+      .is("archivada_en", null)
+      .limit(1);
+    if (activeOrdersError) {
+      console.error("No se pudieron comprobar las demás órdenes del vehículo antes de entregarlo.", activeOrdersError);
+      return NextResponse.json(
+        { error: "No se pudo verificar si el vehículo tiene otras órdenes activas." },
+        { status: 500 },
+      );
+    }
+    if (otherActiveOrders.length) {
+      return NextResponse.json(
+        { error: "No se puede entregar el vehículo mientras tenga otras órdenes activas. Completa o archiva las demás órdenes primero." },
+        { status: 409 },
+      );
+    }
+
     const { count, error: photoError } = await auth.supabase
       .from("fotos_vehiculo")
       .select("id", { count: "exact", head: true })
@@ -121,6 +147,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       );
     }
     if (error.code === "23514") {
+      if (error.message.includes("otras órdenes activas")) {
+        return NextResponse.json({ error: error.message }, { status: 409 });
+      }
       return NextResponse.json(
         { error: error.message },
         {

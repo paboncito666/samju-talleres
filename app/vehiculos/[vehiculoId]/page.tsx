@@ -42,6 +42,7 @@ export default async function VehicleDetailPage({
     `)
     .eq("vehiculo_id", vehicle.id)
     .in("estado", [...ACTIVE_STATUSES])
+    .is("archivada_en", null)
     .order("fecha_ingreso", { ascending: false });
   if (ordersError) throw new Error(`No se pudieron consultar las órdenes activas: ${ordersError.message}`);
 

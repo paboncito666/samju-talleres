@@ -9,6 +9,20 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const auth = await authenticateApiRequest(["admin", "mecanico", "recepcionista"]);
   if (!auth.ok) return auth.response;
 
+  const { data: order, error: orderError } = await auth.supabase
+    .from("ordenes_trabajo")
+    .select("id, archivada_en")
+    .eq("id", id)
+    .maybeSingle();
+  if (orderError) {
+    console.error("No se pudo verificar la orden antes de actualizar un trabajo.", orderError);
+    return NextResponse.json({ error: "No se pudo consultar la orden." }, { status: 500 });
+  }
+  if (!order) return NextResponse.json({ error: "Orden no encontrada o sin acceso." }, { status: 404 });
+  if (order.archivada_en) {
+    return NextResponse.json({ error: "No se pueden actualizar trabajos de una orden archivada." }, { status: 409 });
+  }
+
   const parsed = workItemUpdateSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) {
     return NextResponse.json(

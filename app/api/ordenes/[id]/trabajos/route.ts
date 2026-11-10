@@ -19,7 +19,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   const { data: order, error: orderError } = await auth.supabase
     .from("ordenes_trabajo")
-    .select("id")
+    .select("id, archivada_en")
     .eq("id", id)
     .maybeSingle();
   if (orderError) {
@@ -27,6 +27,9 @@ export async function POST(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "No se pudo consultar la orden." }, { status: 500 });
   }
   if (!order) return NextResponse.json({ error: "Orden no encontrada o sin acceso." }, { status: 404 });
+  if (order.archivada_en) {
+    return NextResponse.json({ error: "No se pueden agregar trabajos a una orden archivada." }, { status: 409 });
+  }
 
   const { data, error } = await auth.supabase
     .from("trabajos_realizados")

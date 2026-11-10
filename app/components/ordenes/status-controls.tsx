@@ -66,6 +66,11 @@ export function StatusControls({
           El trabajo ya terminó. Marca «Entregado al cliente» solo cuando hayas devuelto el vehículo; hasta entonces, la orden sigue activa.
         </p>
       )}
+      {status === "ENTREGADO" && role === "recepcionista" && (
+        <p className="mt-2 text-sm leading-5 text-muted">
+          El vehículo solo puede entregarse cuando no tenga otras órdenes activas. Completa o archiva las demás órdenes antes de registrar la entrega.
+        </p>
+      )}
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <label className="text-xs font-medium text-muted">
           Próximo estado

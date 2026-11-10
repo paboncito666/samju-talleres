@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowUpRight, CarFront, Check, ClipboardList, Gauge, Search, UserRound } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ACTIVE_STATUSES, ESTADOS } from "@/lib/estados";
+import { countActiveOrdersByVehicle } from "@/lib/vehiculos/active-order-counts";
+import { filterVehiclesWithActiveOrders } from "@/lib/vehiculos/active-orders";
 import { RealtimeRefresher } from "@/app/components/realtime/realtime-refresher";
 import { PageHero, PageHeroStat } from "@/app/components/ui/page-hero";
 
@@ -14,7 +16,6 @@ interface PageProps {
     mecanicoId?: string;
     desde?: string;
     hasta?: string;
-    soloActivos?: string;
   }>;
 }
 
@@ -23,8 +24,6 @@ export default async function VehiclesPage({ searchParams }: PageProps) {
   const supabase = await createSupabaseServerClient();
   const queryText = filters.q?.trim().replace(/[%_,]/g, "") ?? "";
   const statusFilter = ACTIVE_STATUSES.find((status) => status === filters.estado);
-  const onlyVehiclesWithActiveOrders = filters.soloActivos === "1";
-  const hasOrderFilters = Boolean(statusFilter || filters.mecanicoId || filters.desde || filters.hasta);
   const [{ data: staff, error: staffError }, { data: vehicles, error: vehicleError }] =
     await Promise.all([
       supabase.from("profiles").select("id, nombre").eq("rol", "mecanico").eq("activo", true).order("nombre"),
@@ -47,28 +46,37 @@ export default async function VehiclesPage({ searchParams }: PageProps) {
     mecanico_id: string | null;
     fecha_ingreso: string;
   }[] = [];
+  let activeOrderCounts = new Map<string, number>();
   if (vehicleIds.length) {
     let orderQuery = supabase.from("ordenes_trabajo")
       .select("id, vehiculo_id, estado, mecanico_id, fecha_ingreso")
       .in("vehiculo_id", vehicleIds)
       .in("estado", [...ACTIVE_STATUSES])
+      .is("archivada_en", null)
       .order("fecha_ingreso", { ascending: false })
       .limit(1000);
     if (statusFilter) orderQuery = orderQuery.eq("estado", statusFilter);
     if (filters.mecanicoId) orderQuery = orderQuery.eq("mecanico_id", filters.mecanicoId);
     if (filters.desde) orderQuery = orderQuery.gte("fecha_ingreso", `${filters.desde}T00:00:00`);
     if (filters.hasta) orderQuery = orderQuery.lte("fecha_ingreso", `${filters.hasta}T23:59:59`);
-    const result = await orderQuery;
+    const [result, countsResult] = await Promise.all([
+      orderQuery,
+      supabase
+        .from("ordenes_trabajo")
+        .select("vehiculo_id")
+        .in("vehiculo_id", vehicleIds)
+        .in("estado", [...ACTIVE_STATUSES])
+        .is("archivada_en", null)
+        .limit(1000),
+    ]);
     if (result.error) throw new Error(`No se pudieron filtrar las órdenes: ${result.error.message}`);
+    if (countsResult.error) throw new Error(`No se pudieron contar las órdenes activas por vehículo: ${countsResult.error.message}`);
     orders = result.data;
+    activeOrderCounts = countActiveOrdersByVehicle(countsResult.data);
   }
   const orderByVehicle = new Map<string, (typeof orders)[number]>();
   for (const order of orders) if (!orderByVehicle.has(order.vehiculo_id)) orderByVehicle.set(order.vehiculo_id, order);
-  const filteredVehicles = vehicles.filter((vehicle) => {
-    if (hasOrderFilters || onlyVehiclesWithActiveOrders) return orderByVehicle.has(vehicle.id);
-    return true;
-  });
-  const vehiclesWithOrders = filteredVehicles.filter((vehicle) => orderByVehicle.has(vehicle.id)).length;
+  const filteredVehicles = filterVehiclesWithActiveOrders(vehicles, orders);
 
   return (
     <main className="admin-stagger space-y-7">
@@ -80,14 +88,14 @@ export default async function VehiclesPage({ searchParams }: PageProps) {
             <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
           </Link>
         }
-        description="La flota permanece visible aunque no tenga trabajo en curso. Las órdenes cerradas se consultan desde el historial de cada vehículo."
+        description="Aquí aparecen los vehículos que aún tienen trabajo pendiente. Al completar o archivar todas sus órdenes, podrás consultarlos desde el historial."
         eyebrow="Flota del taller"
         icon={CarFront}
         title="Vehículos"
       >
-        <PageHeroStat icon={CarFront} label="Vehículos registrados" value={filteredVehicles.length} />
-        <PageHeroStat icon={ClipboardList} label="Con órdenes activas" value={vehiclesWithOrders} />
-        <PageHeroStat icon={UserRound} label="Sin órdenes activas" value={filteredVehicles.length - vehiclesWithOrders} />
+        <PageHeroStat icon={CarFront} label="Vehículos en taller" value={filteredVehicles.length} />
+        <PageHeroStat icon={ClipboardList} label="Órdenes activas" value={[...activeOrderCounts.values()].reduce((total, count) => total + count, 0)} />
+        <PageHeroStat icon={UserRound} label="Historial de vehículos" value="Consulta" />
       </PageHero>
       <form className="admin-reveal rounded-3xl border border-line bg-white p-4 shadow-soft sm:p-5" method="get">
         <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-ink">
@@ -100,18 +108,23 @@ export default async function VehiclesPage({ searchParams }: PageProps) {
         <label className="text-xs font-medium text-muted">Mecánico<select className="mt-1.5 w-full rounded-xl border border-line bg-background px-3 py-2.5 text-sm text-ink outline-none transition focus:border-emerald-700 focus:ring-4 focus:ring-emerald-900/10" name="mecanicoId" defaultValue={filters.mecanicoId ?? ""}><option value="">Todos</option>{staff.map((person) => <option key={person.id} value={person.id}>{person.nombre}</option>)}</select></label>
         <label className="text-xs font-medium text-muted">Desde<input className="mt-1.5 w-full rounded-xl border border-line bg-background px-3 py-2.5 text-sm text-ink outline-none transition focus:border-emerald-700 focus:ring-4 focus:ring-emerald-900/10" type="date" name="desde" defaultValue={filters.desde} /></label>
         <label className="text-xs font-medium text-muted">Hasta<input className="mt-1.5 w-full rounded-xl border border-line bg-background px-3 py-2.5 text-sm text-ink outline-none transition focus:border-emerald-700 focus:ring-4 focus:ring-emerald-900/10" type="date" name="hasta" defaultValue={filters.hasta} /></label>
-        <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-background px-3 py-3 text-xs font-medium text-muted lg:col-span-3"><input className="size-4 accent-emerald-800" type="checkbox" name="soloActivos" value="1" defaultChecked={onlyVehiclesWithActiveOrders} />Mostrar solo vehículos con órdenes activas</label>
-        <div className="flex items-center gap-2 lg:col-span-3"><button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2" type="submit"><Search className="size-4" aria-hidden="true" />Aplicar filtros</button><Link className="rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-mist" href="/vehiculos">Limpiar</Link></div>
+        <div className="flex items-center gap-2 lg:col-span-6"><button className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:-translate-y-0.5 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2" type="submit"><Search className="size-4" aria-hidden="true" />Aplicar filtros</button><Link className="rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-mist" href="/vehiculos">Limpiar</Link></div>
         </div>
       </form>
-      {filteredVehicles.length === 0 ? <p className="rounded-3xl border border-dashed border-line bg-white p-10 text-center text-sm text-muted">No hay vehículos para los filtros seleccionados. Ajusta la búsqueda o incluye vehículos sin órdenes activas.</p> : (
+      {filteredVehicles.length === 0 ? <p className="rounded-3xl border border-dashed border-line bg-white p-10 text-center text-sm text-muted">No hay vehículos con órdenes activas para los filtros seleccionados. Los vehículos ya entregados o sin trabajo pendiente se consultan desde Historial.</p> : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{filteredVehicles.map((vehicle, index) => {
               const order = orderByVehicle.get(vehicle.id);
               const status = order ? ESTADOS[order.estado] : null;
+              const activeOrderCount = activeOrderCounts.get(vehicle.id) ?? 0;
               return <article className="admin-reveal group rounded-3xl border border-line bg-white p-5 shadow-[0_12px_35px_-28px_rgba(37,41,39,0.35)] transition duration-300 hover:-translate-y-1 hover:shadow-soft" key={vehicle.id} style={{ animationDelay: `${Math.min(index, 6) * 55}ms` }}>
                 <div className="flex items-start justify-between gap-3">
                   <span className="grid size-12 place-items-center rounded-2xl bg-mist text-ink transition duration-300 group-hover:scale-105"><CarFront className="size-6" aria-hidden="true" /></span>
-                  {status ? <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.color}`}>Orden · {status.label}</span> : <span className="rounded-full bg-background px-2.5 py-1 text-xs font-medium text-muted">Sin órdenes</span>}
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                      {activeOrderCount} {activeOrderCount === 1 ? "orden activa" : "órdenes activas"}
+                    </span>
+                    {status && <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status.color}`}>Orden · {status.label}</span>}
+                  </div>
                 </div>
                 <Link className="mt-4 block text-lg font-semibold tracking-tight text-ink underline decoration-emerald-200 underline-offset-4" href={`/vehiculos/${vehicle.id}`}>{vehicle.marca} {vehicle.modelo} {vehicle.anio ?? ""}</Link>
                 <p className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-background px-2.5 py-1 text-xs font-semibold tracking-wide text-ink"><Check className="size-3.5 text-emerald-800" aria-hidden="true" />{vehicle.placa}{vehicle.color ? ` · ${vehicle.color}` : ""}</p>

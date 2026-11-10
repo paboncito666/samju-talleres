@@ -17,7 +17,8 @@ export async function GET(request: Request) {
       "id, vehiculo_id, mecanico_id, estado, descripcion_trabajo, tipo_servicio, fecha_ingreso, fecha_estimada_entrega, vehiculos(placa, marca, modelo, propietario_nombre)",
     )
     .order("fecha_ingreso", { ascending: false })
-    .limit(limit);
+    .limit(limit)
+    .is("archivada_en", null);
   if (auth.role === "mecanico") query = query.eq("mecanico_id", auth.userId);
 
   const { data, error } = await query;

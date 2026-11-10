@@ -23,6 +23,7 @@ export default async function OrdersPage({
   const statusFilter = ACTIVE_STATUSES.find((status) => status === filters.estado);
   let query = supabase.from("ordenes_trabajo")
     .select("id, vehiculo_id, mecanico_id, estado, descripcion_trabajo, tipo_servicio, fecha_ingreso, fecha_estimada_entrega, vehiculos!inner(placa, marca, modelo, propietario_nombre)")
+    .is("archivada_en", null)
     .in("estado", [...ACTIVE_STATUSES])
     .order("fecha_ingreso", { ascending: false })
     .limit(300);

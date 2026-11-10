@@ -11,6 +11,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { StaffInvitationForm } from "./invitation-form";
+import { StaffAccountActions } from "./staff-account-actions";
 
 interface PageProps {
   searchParams: Promise<{ actualizado?: string }>;
@@ -185,6 +186,15 @@ export default async function StaffRolesPage({ searchParams }: PageProps) {
                       </form>
                     )}
                   </div>
+                  {!isAdmin && (
+                    <div className="mt-4 border-t border-line pt-4">
+                      <StaffAccountActions
+                        isActive={profile.activo}
+                        name={profile.nombre}
+                        profileId={profile.id}
+                      />
+                    </div>
+                  )}
                 </article>
               );
             })}

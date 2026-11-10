@@ -44,7 +44,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const [ordersResult, mechanicsResult, profileResult] = await Promise.all([
     supabase
       .from("ordenes_trabajo")
-      .select("id, estado, fecha_ingreso, fecha_entrega_real, mecanico_id")
+      .select("id, estado, fecha_ingreso, fecha_entrega_real, mecanico_id, archivada_en")
       .order("fecha_ingreso", { ascending: false }),
     supabase.from("profiles").select("id, nombre").eq("rol", "mecanico").eq("activo", true),
     supabase
@@ -58,7 +58,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   if (profileResult.error) throw new Error(`No se pudo cargar el perfil: ${profileResult.error.message}`);
 
   const orders = ordersResult.data;
-  const active = orders.filter((order) => ACTIVE_STATUSES.includes(order.estado));
+  const active = orders.filter(
+    (order) => !order.archivada_en && ACTIVE_STATUSES.includes(order.estado),
+  );
+  const reportedOrders = orders.filter(
+    (order) => !order.archivada_en || !ACTIVE_STATUSES.includes(order.estado),
+  );
   const activeOrderIds = active.map((order) => order.id);
   const historyResult = activeOrderIds.length
     ? await supabase
@@ -97,7 +102,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     : 0;
   const byStatus = Object.entries(ESTADOS).map(([status, details], index) => ({
     name: details.label,
-    total: orders.filter((order) => order.estado === status).length,
+    total: reportedOrders.filter((order) => order.estado === status).length,
     color: colors[index],
   }));
   const byMechanic = mechanicsResult.data.map((mechanic) => ({
@@ -107,8 +112,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   const kpis = [
     { label: "Órdenes activas", value: active.length, icon: ClipboardList },
-    { label: "Listas para entrega", value: orders.filter((order) => order.estado === "LISTO").length, icon: Activity },
-    { label: "En reparación", value: orders.filter((order) => order.estado === "REPARACION").length, icon: Wrench },
+    { label: "Listas para entrega", value: active.filter((order) => order.estado === "LISTO").length, icon: Activity },
+    { label: "En reparación", value: active.filter((order) => order.estado === "REPARACION").length, icon: Wrench },
     { label: "Promedio de reparación", value: `${averageDays.toFixed(1)} días`, icon: Clock3 },
   ];
 
