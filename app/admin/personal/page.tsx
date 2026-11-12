@@ -1,4 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { isPendingStaffInvitation } from "@/lib/admin/staff-invitations";
 import { updateStaffRole } from "@/app/admin/personal/actions";
 import { isProfileRole } from "@/lib/auth/permissions";
 import {
@@ -14,7 +16,7 @@ import { StaffInvitationForm } from "./invitation-form";
 import { StaffAccountActions } from "./staff-account-actions";
 
 interface PageProps {
-  searchParams: Promise<{ actualizado?: string }>;
+  searchParams: Promise<{ actualizado?: string; invitacion_cancelada?: string }>;
 }
 
 export const dynamic = "force-dynamic";
@@ -38,7 +40,34 @@ export default async function StaffRolesPage({ searchParams }: PageProps) {
     .select("id, nombre, rol, activo")
     .order("nombre");
   if (error) throw new Error(`No se pudo cargar el personal: ${error.message}`);
-  const activeCount = profiles.filter((profile) => profile.activo).length;
+  let adminClient;
+  try {
+    adminClient = createSupabaseAdminClient();
+  } catch (error) {
+    console.error("No se pudo inicializar la consulta de invitaciones pendientes.", error);
+    throw new Error("No se pudo cargar el estado de las invitaciones del personal.");
+  }
+  const invitationResults = await Promise.all(
+    profiles.map((profile) => adminClient.auth.admin.getUserById(profile.id)),
+  );
+  const invitationsByProfile = new Map(
+    invitationResults.map((result, index) => {
+      if (result.error) {
+        console.error("No se pudo consultar una cuenta del personal en Auth.", result.error);
+        throw new Error("No se pudo cargar el estado de las invitaciones del personal.");
+      }
+      return [
+        profiles[index].id,
+        {
+          email: result.data.user.email ?? null,
+          pending: isPendingStaffInvitation(result.data.user),
+        },
+      ] as const;
+    }),
+  );
+  const activeCount = profiles.filter(
+    (profile) => profile.activo && !invitationsByProfile.get(profile.id)?.pending,
+  ).length;
   const mechanicCount = profiles.filter((profile) => profile.rol === "mecanico").length;
   const receptionCount = profiles.filter((profile) => profile.rol === "recepcionista").length;
 
@@ -102,6 +131,15 @@ export default async function StaffRolesPage({ searchParams }: PageProps) {
         </div>
       )}
 
+      {filters.invitacion_cancelada === "1" && (
+        <div className="admin-reveal flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 text-sm text-emerald-900 shadow-sm" role="status">
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-emerald-100">
+            <Check className="size-4" aria-hidden="true" />
+          </span>
+          <span className="font-medium">La invitación se canceló y el enlace anterior ya no es válido.</span>
+        </div>
+      )}
+
       <StaffInvitationForm />
 
       <section className="admin-reveal space-y-4" id="equipo">
@@ -127,6 +165,7 @@ export default async function StaffRolesPage({ searchParams }: PageProps) {
             {profiles.map((profile) => {
               const isAdmin = profile.rol === "admin";
               const isMechanic = profile.rol === "mecanico";
+              const invitation = invitationsByProfile.get(profile.id);
               const RoleIcon = isAdmin ? ShieldCheck : isMechanic ? Wrench : CircleUserRound;
               return (
                 <article
@@ -140,14 +179,14 @@ export default async function StaffRolesPage({ searchParams }: PageProps) {
                       </span>
                       <div className="min-w-0">
                         <h3 className="truncate font-semibold text-ink">{profile.nombre}</h3>
-                        <p className="mt-0.5 text-xs text-muted" title={profile.id}>
-                          Cuenta · {profile.id.slice(0, 8)}
+                        <p className="mt-0.5 truncate text-xs text-muted">
+                          {invitation?.email ?? "Correo no disponible"}
                         </p>
                       </div>
                     </div>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${profile.activo ? "bg-emerald-50 text-emerald-800" : "bg-rose-foreground/10 text-rose-foreground"}`}>
-                      <span className={`size-1.5 rounded-full ${profile.activo ? "bg-emerald-500" : "bg-rose-foreground"}`} />
-                      {profile.activo ? "Activo" : "Inactivo"}
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${invitation?.pending ? "bg-amber-50 text-amber-800" : profile.activo ? "bg-emerald-50 text-emerald-800" : "bg-rose-foreground/10 text-rose-foreground"}`}>
+                      <span className={`size-1.5 rounded-full ${invitation?.pending ? "bg-amber-500" : profile.activo ? "bg-emerald-500" : "bg-rose-foreground"}`} />
+                      {invitation?.pending ? "Invitación pendiente" : profile.activo ? "Activo" : "Inactivo"}
                     </span>
                   </div>
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
@@ -190,6 +229,7 @@ export default async function StaffRolesPage({ searchParams }: PageProps) {
                     <div className="mt-4 border-t border-line pt-4">
                       <StaffAccountActions
                         isActive={profile.activo}
+                        isPendingInvitation={invitation?.pending ?? false}
                         name={profile.nombre}
                         profileId={profile.id}
                       />

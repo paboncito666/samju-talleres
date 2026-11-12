@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import {
   ChevronDown,
   LogOut,
+  Monitor,
   Moon,
   Settings,
   Sun,
@@ -14,7 +15,7 @@ import {
 } from "lucide-react";
 import type { ProfileRole } from "@/lib/auth/permissions";
 
-type ThemePreference = "light" | "dark";
+type ThemePreference = "light" | "dark" | "system";
 type FontSizePreference = "small" | "normal" | "large";
 
 const fontSizeLabels: Record<FontSizePreference, string> = {
@@ -47,7 +48,7 @@ function useStoredPreference<T extends string>(
 }
 
 function isThemePreference(value: string): value is ThemePreference {
-  return value === "light" || value === "dark";
+  return value === "light" || value === "dark" || value === "system";
 }
 
 function isFontSizePreference(value: string): value is FontSizePreference {
@@ -68,13 +69,17 @@ export function UserMenu({
   signOutAction: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useStoredPreference("samju-theme", "light", isThemePreference);
+  const [theme, setTheme] = useStoredPreference("samju-theme", "system", isThemePreference);
   const [fontSize, setFontSize] = useStoredPreference("samju-font-size", "normal", isFontSizePreference);
   const menuRef = useRef<HTMLDivElement>(null);
   const safeAvatarUrl = avatarUrl?.startsWith("https://") ? avatarUrl : null;
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
+    if (theme === "system") {
+      delete document.documentElement.dataset.theme;
+    } else {
+      document.documentElement.dataset.theme = theme;
+    }
   }, [theme]);
 
   useEffect(() => {
@@ -156,7 +161,16 @@ export function UserMenu({
               <Sun aria-hidden="true" size={15} />
               Apariencia
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                aria-pressed={theme === "system"}
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-line px-2 py-2 text-xs text-ink aria-pressed:border-ink aria-pressed:bg-mist"
+                onClick={() => setTheme("system")}
+                type="button"
+              >
+                <Monitor aria-hidden="true" size={14} />
+                Sistema
+              </button>
               <button
                 aria-pressed={theme === "light"}
                 className="flex items-center justify-center gap-2 rounded-lg border border-line px-2 py-2 text-xs text-ink aria-pressed:border-ink aria-pressed:bg-mist"

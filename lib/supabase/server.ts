@@ -13,6 +13,7 @@ export async function createSupabaseServerClient(): Promise<SupabaseClient> {
   }
 
   const cookieStore = await cookies();
+  const persistSession = cookieStore.get("samju-remember-session")?.value !== "0";
 
   return createServerClient(url, anonKey, {
     cookies: {
@@ -22,7 +23,11 @@ export async function createSupabaseServerClient(): Promise<SupabaseClient> {
       setAll(cookiesToSet) {
         try {
           for (const { name, value, options } of cookiesToSet) {
-            cookieStore.set(name, value, options);
+            const cookieOptions = { ...options };
+            if (!persistSession && cookieOptions.maxAge !== 0) {
+              delete cookieOptions.maxAge;
+            }
+            cookieStore.set(name, value, cookieOptions);
           }
         } catch {
           // Server Components cannot write cookies; middleware persists refreshed sessions.

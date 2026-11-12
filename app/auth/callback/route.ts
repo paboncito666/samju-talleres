@@ -23,6 +23,9 @@ export async function GET(request: NextRequest) {
       console.error("No se pudo cargar el usuario después del callback.", userError);
       return NextResponse.redirect(new URL("/login?error=oauth", request.url));
     }
+    if (request.nextUrl.searchParams.get("flow") === "recovery") {
+      return NextResponse.redirect(new URL("/restablecer-contrasena", request.url));
+    }
     if (user.user_metadata?.force_password_setup === true) {
       return NextResponse.redirect(
         new URL("/ajustes/establecer-contrasena", request.url),
