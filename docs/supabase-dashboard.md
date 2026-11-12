@@ -33,6 +33,9 @@ la herramienta de migraciones elegida por el equipo:
    consultas del historial filtradas por tipo de servicio y fecha.
 9. `20261022150000_enable_vehicle_updates.sql`: concede y limita las
    actualizaciones de datos del vehículo a administradores y recepcionistas.
+10. `20261112110000_add_vehicle_photos.sql`: añade la referencia de foto a los
+    vehículos y políticas privadas para cargar, consultar y reemplazar esas
+    imágenes en el bucket existente.
 
 La primera migración es idempotente para las tablas y objetos que declara y
 añade `diagnostico` si falta. Si el proyecto ya tiene un esquema distinto,
@@ -54,7 +57,7 @@ depender de un nombre concreto del tipo enum de roles (`rol_personal` o
 | Tabla | Lectura | Escritura |
 | --- | --- | --- |
 | `profiles` | Personal autenticado | Cada persona modifica su propio nombre/avatar; `nombre_confirmado` solo cambia mediante `confirm_own_profile_name()`. Los roles solo se cambian mediante `assign_staff_role()` para administradores activos, otras cuentas y los roles `mecanico`/`recepcionista`. |
-| `vehiculos` | Personal con perfil activo | `admin` y `recepcionista`; pueden crear y actualizar datos básicos; placa única. |
+| `vehiculos` | Personal con perfil activo | `admin` y `recepcionista`; pueden crear y actualizar datos básicos y la foto; placa única. |
 | `ordenes_trabajo` | `admin`/`recepcionista` leen todas; `mecanico` solo sus órdenes asignadas | Recepción/admin crean; personal autorizado actualiza; trigger valida transición y exige diagnóstico para calidad/cierre. |
 | `trabajos_realizados` | Personal activo | Personal autenticado puede registrar/actualizar trabajos; solo `admin` puede eliminarlos. |
 | `fotos_vehiculo` | Personal activo | Solo se pueden registrar fotos asociadas a la sesión; eliminación de metadatos reservada a `admin`. |
@@ -74,10 +77,13 @@ calidad o cierre sin diagnóstico.
 
 ## Fotos privadas y Realtime
 
-La migración crea el bucket privado `fotos-vehiculos`, limita las imágenes a
-JPG/PNG/WebP de hasta 5 MB y autoriza el acceso según la orden y el perfil. La
-aplicación conserva la ruta del objeto, no una URL pública; las vistas generan
-URL firmadas temporales para mostrarla.
+La migración inicial crea el bucket privado `fotos-vehiculos`, limita las
+imágenes a JPG/PNG/WebP de hasta 5 MB y autoriza las fotos de órdenes según su
+asignación. La migración `20261112110000_add_vehicle_photos.sql` agrega las
+fotos de vehículos bajo la ruta `vehiculos/<id>/...`; solo administradores y
+recepcionistas pueden cargarlas o eliminarlas, y el personal activo puede
+consultarlas. La aplicación conserva la ruta del objeto, no una URL pública;
+las vistas generan URL firmadas temporales para mostrarla.
 
 Para que las actualizaciones en vivo funcionen, habilita en Supabase Realtime
 la publicación de `ordenes_trabajo`, `historial_estados` y `fotos_vehiculo`.

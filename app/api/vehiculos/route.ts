@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   let requestQuery = auth.supabase
     .from("vehiculos")
     .select(
-      "id, placa, marca, modelo, anio, color, kilometraje, propietario_nombre, propietario_telefono",
+      "id, placa, marca, modelo, anio, color, kilometraje, propietario_nombre, propietario_telefono, foto_url",
     )
     .order("placa", { ascending: true })
     .limit(limit);
