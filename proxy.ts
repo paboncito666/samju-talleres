@@ -10,6 +10,7 @@ export async function proxy(request: NextRequest) {
   }
 
   let response = NextResponse.next({ request });
+  const persistSession = request.cookies.get("samju-remember-session")?.value !== "0";
   const supabase = createServerClient(url, anonKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
@@ -17,7 +18,11 @@ export async function proxy(request: NextRequest) {
         for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
         response = NextResponse.next({ request });
         for (const { name, value, options } of cookiesToSet) {
-          response.cookies.set(name, value, options);
+          const cookieOptions = { ...options };
+          if (!persistSession && cookieOptions.maxAge !== 0) {
+            delete cookieOptions.maxAge;
+          }
+          response.cookies.set(name, value, cookieOptions);
         }
       },
     },

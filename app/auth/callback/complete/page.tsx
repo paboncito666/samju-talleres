@@ -100,6 +100,12 @@ export default function AuthCallbackCompletePage() {
         return;
       }
 
+      if (query.get("flow") === "recovery") {
+        router.replace("/restablecer-contrasena");
+        router.refresh();
+        return;
+      }
+
       if (user.user_metadata?.force_password_setup === true) {
         router.replace("/ajustes/establecer-contrasena");
         router.refresh();

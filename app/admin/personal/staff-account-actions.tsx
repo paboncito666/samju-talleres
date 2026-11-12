@@ -6,16 +6,19 @@ import { AlertCircle, Ban, RotateCcw, ShieldAlert, Trash2, X } from "lucide-reac
 
 type AccountAction =
   | { kind: "status"; active: boolean }
+  | { kind: "cancel-invitation" }
   | { kind: "delete" };
 
 export function StaffAccountActions({
   profileId,
   name,
   isActive,
+  isPendingInvitation,
 }: {
   profileId: string;
   name: string;
   isActive: boolean;
+  isPendingInvitation: boolean;
 }) {
   const router = useRouter();
   const [action, setAction] = useState<AccountAction | null>(null);
@@ -38,17 +41,29 @@ export function StaffAccountActions({
     setError("");
     setNotice("");
     try {
-      const response = await fetch(`/api/admin/staff/${profileId}`, {
-        method: action.kind === "delete" ? "DELETE" : "PATCH",
-        ...(action.kind === "status"
-          ? {
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ activo: action.active }),
-            }
-          : {}),
-      });
+      const response = await fetch(
+        action.kind === "cancel-invitation"
+          ? `/api/admin/invitations/${profileId}`
+          : `/api/admin/staff/${profileId}`,
+        {
+          method: action.kind === "status" ? "PATCH" : "DELETE",
+          ...(action.kind === "status"
+            ? {
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ activo: action.active }),
+              }
+            : {}),
+        },
+      );
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "No se pudo actualizar la cuenta.");
+
+      setAction(null);
+      setConfirmation("");
+      if (action.kind === "cancel-invitation") {
+        router.replace("/admin/personal?invitacion_cancelada=1#equipo");
+        return;
+      }
 
       setNotice(
         action.kind === "delete"
@@ -57,8 +72,6 @@ export function StaffAccountActions({
             ? `La cuenta de ${name} se reactivó.`
             : `La cuenta de ${name} se desactivó.`,
       );
-      setAction(null);
-      setConfirmation("");
       router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Ocurrió un error inesperado.");
@@ -68,36 +81,54 @@ export function StaffAccountActions({
   }
 
   const isDeleteAction = action?.kind === "delete";
+  const isCancelInvitationAction = action?.kind === "cancel-invitation";
 
   return (
     <div className="w-full">
       <div className="flex flex-wrap gap-2">
-        <button
-          className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-sm font-medium text-ink transition hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
-          onClick={() => {
-            setError("");
-            setAction({ kind: "status", active: !isActive });
-          }}
-          type="button"
-        >
-          {isActive ? (
-            <><Ban className="size-4" aria-hidden="true" />Desactivar</>
-          ) : (
-            <><RotateCcw className="size-4" aria-hidden="true" />Reactivar</>
-          )}
-        </button>
-        <button
-          className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-800 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700"
-          onClick={() => {
-            setError("");
-            setConfirmation("");
-            setAction({ kind: "delete" });
-          }}
-          type="button"
-        >
-          <Trash2 className="size-4" aria-hidden="true" />
-          Eliminar cuenta
-        </button>
+        {isPendingInvitation ? (
+          <button
+            className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 px-3 py-2 text-sm font-medium text-amber-900 transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700"
+            onClick={() => {
+              setError("");
+              setConfirmation("");
+              setAction({ kind: "cancel-invitation" });
+            }}
+            type="button"
+          >
+            <Ban className="size-4" aria-hidden="true" />
+            Cancelar invitación
+          </button>
+        ) : (
+          <>
+            <button
+              className="inline-flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-sm font-medium text-ink transition hover:bg-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
+              onClick={() => {
+                setError("");
+                setAction({ kind: "status", active: !isActive });
+              }}
+              type="button"
+            >
+              {isActive ? (
+                <><Ban className="size-4" aria-hidden="true" />Desactivar</>
+              ) : (
+                <><RotateCcw className="size-4" aria-hidden="true" />Reactivar</>
+              )}
+            </button>
+            <button
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 px-3 py-2 text-sm font-medium text-red-800 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700"
+              onClick={() => {
+                setError("");
+                setConfirmation("");
+                setAction({ kind: "delete" });
+              }}
+              type="button"
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+              Eliminar cuenta
+            </button>
+          </>
+        )}
       </div>
       {error && !action && (
         <p className="mt-2 flex items-center gap-2 text-sm text-red-800" role="alert">
@@ -117,8 +148,8 @@ export function StaffAccountActions({
             role="dialog"
           >
             <div className="flex items-start justify-between gap-4">
-              <span className={`grid size-11 shrink-0 place-items-center rounded-2xl ${isDeleteAction ? "bg-red-50 text-red-800" : "bg-amber-50 text-amber-800"}`}>
-                {isDeleteAction ? <Trash2 className="size-5" aria-hidden="true" /> : <ShieldAlert className="size-5" aria-hidden="true" />}
+              <span className={`grid size-11 shrink-0 place-items-center rounded-2xl ${isDeleteAction || isCancelInvitationAction ? "bg-red-50 text-red-800" : "bg-amber-50 text-amber-800"}`}>
+                {isDeleteAction ? <Trash2 className="size-5" aria-hidden="true" /> : isCancelInvitationAction ? <Ban className="size-5" aria-hidden="true" /> : <ShieldAlert className="size-5" aria-hidden="true" />}
               </span>
               <button
                 aria-label="Cerrar confirmación"
@@ -131,14 +162,22 @@ export function StaffAccountActions({
               </button>
             </div>
             <h2 className="mt-4 text-lg font-semibold text-ink" id="staff-account-action-title">
-              {isDeleteAction ? "Eliminar cuenta permanentemente" : action.active ? "Reactivar cuenta" : "Desactivar cuenta"}
+              {isCancelInvitationAction
+                ? "Cancelar invitación pendiente"
+                : isDeleteAction
+                  ? "Eliminar cuenta permanentemente"
+                  : action.kind === "status" && action.active
+                    ? "Reactivar cuenta"
+                    : "Desactivar cuenta"}
             </h2>
             <p className="mt-2 text-sm leading-6 text-muted" id="staff-account-action-description">
-              {isDeleteAction
-                ? <>Se eliminará el acceso y el perfil de <strong className="text-ink">{name}</strong>. Las órdenes, notas y demás registros se conservarán, pero dejarán de mostrar la referencia a esta cuenta. No se puede deshacer.</>
-                : action.active
-                  ? <>Se devolverá el acceso a <strong className="text-ink">{name}</strong> y podrá volver a iniciar sesión.</>
-                  : <>Se bloqueará el acceso de <strong className="text-ink">{name}</strong>. Sus órdenes e historial se conservarán y podrás reactivar la cuenta después.</>}
+              {isCancelInvitationAction
+                ? <>Se eliminará la cuenta pendiente de <strong className="text-ink">{name}</strong> y el enlace dejará de funcionar. El mensaje ya enviado no se puede borrar de la bandeja de correo del destinatario; después podrás enviar una nueva invitación con el correo correcto.</>
+                : isDeleteAction
+                  ? <>Se eliminará el acceso y el perfil de <strong className="text-ink">{name}</strong>. Las órdenes, notas y demás registros se conservarán, pero dejarán de mostrar la referencia a esta cuenta. No se puede deshacer.</>
+                  : action.kind === "status" && action.active
+                    ? <>Se devolverá el acceso a <strong className="text-ink">{name}</strong> y podrá volver a iniciar sesión.</>
+                    : <>Se bloqueará el acceso de <strong className="text-ink">{name}</strong>. Sus órdenes e historial se conservarán y podrás reactivar la cuenta después.</>}
             </p>
 
             {isDeleteAction && (
@@ -170,12 +209,20 @@ export function StaffAccountActions({
                 Cancelar
               </button>
               <button
-                className={`rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${isDeleteAction ? "bg-red-700 hover:bg-red-800" : "bg-primary hover:bg-primary-hover"}`}
+                className={`rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${isDeleteAction || isCancelInvitationAction ? "bg-red-700 hover:bg-red-800" : "bg-primary hover:bg-primary-hover"}`}
                 disabled={busy || (isDeleteAction && confirmation !== "ELIMINAR")}
                 onClick={confirmAction}
                 type="button"
               >
-                {busy ? "Procesando..." : isDeleteAction ? "Eliminar permanentemente" : action.active ? "Reactivar cuenta" : "Desactivar cuenta"}
+                {busy
+                  ? "Procesando..."
+                  : isCancelInvitationAction
+                    ? "Cancelar invitación"
+                    : isDeleteAction
+                      ? "Eliminar permanentemente"
+                      : action.kind === "status" && action.active
+                        ? "Reactivar cuenta"
+                        : "Desactivar cuenta"}
               </button>
             </div>
           </section>

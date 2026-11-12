@@ -30,6 +30,52 @@
   --sage: #8da696;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --background: #171a18;
+    --foreground: #e5e9e6;
+    --surface: #222724;
+    --ink: #e5e9e6;
+    --primary: #3f6b52;
+    --primary-hover: #4d7b61;
+    --muted: #a6b0a9;
+    --line: #39413c;
+    --mist: #2b322e;
+    --sage: #8da696;
+  }
+}
+
+.auth-theme {
+  color-scheme: light;
+  --background: #f3f6f3;
+  --foreground: #252927;
+  --surface: #ffffff;
+  --ink: #252927;
+  --primary: #23372d;
+  --primary-hover: #365746;
+  --muted: #68746d;
+  --line: #dce5de;
+  --mist: #edf2ee;
+  --sage: #a9b9ad;
+}
+
+@media (prefers-color-scheme: dark) {
+  .auth-theme {
+    color-scheme: dark;
+    --background: #151a17;
+    --foreground: #e8eee9;
+    --surface: #202823;
+    --ink: #e8eee9;
+    --primary: #426d53;
+    --primary-hover: #548367;
+    --muted: #a6b3aa;
+    --line: #39463e;
+    --mist: #2a352e;
+    --sage: #91aa98;
+  }
+}
+
 :root[data-font-size="small"] {
   font-size: 14px;
 }
