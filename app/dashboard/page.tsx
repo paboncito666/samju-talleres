@@ -146,40 +146,40 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       )}
       <section
         aria-label="Alertas de órdenes sin avances"
-        className={`admin-reveal relative overflow-hidden rounded-3xl border p-5 shadow-soft transition duration-300 sm:p-6 ${staleOrders.length ? "border-amber-200 bg-gradient-to-br from-amber-50 to-white" : "border-line bg-white"}`}
+        className={`dashboard-followup-alert admin-reveal relative overflow-hidden rounded-3xl border p-5 shadow-soft transition duration-300 sm:p-6 ${staleOrders.length ? "dashboard-followup-alert--warning" : "dashboard-followup-alert--clear"}`}
       >
-        {staleOrders.length > 0 && <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-20 size-52 rounded-full bg-amber-100/70 blur-3xl" />}
+        {staleOrders.length > 0 && <div aria-hidden="true" className="dashboard-followup-orb pointer-events-none absolute -right-10 -top-20 size-52 rounded-full blur-3xl" />}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="relative flex items-start gap-3">
-            <span className={`grid size-10 shrink-0 place-items-center rounded-2xl ${staleOrders.length ? "bg-amber-100 text-amber-800" : "bg-emerald-50 text-emerald-800"}`}>
+            <span className={`dashboard-followup-icon grid size-10 shrink-0 place-items-center rounded-2xl ${staleOrders.length ? "dashboard-followup-icon--warning" : "dashboard-followup-icon--clear"}`}>
               {staleOrders.length ? <AlertTriangle className="size-5" aria-hidden="true" /> : <Activity className="size-5" aria-hidden="true" />}
             </span>
             <div>
-            <h2 className="text-lg font-semibold text-ink">Alertas de seguimiento</h2>
-            <p className="mt-1 text-sm text-muted">
+            <h2 className="dashboard-followup-title text-lg font-semibold">Alertas de seguimiento</h2>
+            <p className="dashboard-followup-description mt-1 text-sm">
               Órdenes activas sin cambios de estado durante {alertThresholdDays} días o más.
             </p>
             </div>
           </div>
-          <span className={`relative rounded-full px-3 py-1 text-sm font-semibold ${staleOrders.length ? "bg-amber-100 text-amber-900" : "bg-emerald-50 text-emerald-800"}`}>
+          <span className={`dashboard-followup-count relative rounded-full px-3 py-1 text-sm font-semibold ${staleOrders.length ? "dashboard-followup-count--warning" : "dashboard-followup-count--clear"}`}>
             {staleOrders.length}
           </span>
         </div>
         {staleOrders.length === 0 ? (
-          <p className="mt-4 rounded-2xl bg-emerald-50/70 px-4 py-3 text-sm text-emerald-900">Todo al día: no hay órdenes pendientes de avance.</p>
+          <p className="dashboard-followup-clear-message mt-4 rounded-2xl px-4 py-3 text-sm">Todo al día: no hay órdenes pendientes de avance.</p>
         ) : (
           <ul className="relative mt-4 grid gap-2 sm:grid-cols-2">
             {staleOrders.map((order) => (
-              <li className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-100 bg-white/80 p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-soft" key={order.id}>
+              <li className="dashboard-followup-card flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 transition duration-200 hover:-translate-y-0.5 hover:shadow-soft" key={order.id}>
                 <div className="min-w-0">
-                  <Link className="font-semibold text-ink underline decoration-amber-300 underline-offset-4" href={`/ordenes/${order.id}`}>
+                  <Link className="dashboard-followup-link font-semibold underline underline-offset-4" href={`/ordenes/${order.id}`}>
                     Orden {order.id.slice(0, 8).toUpperCase()}
                   </Link>
-                  <p className="mt-1 text-xs text-muted">
+                  <p className="dashboard-followup-meta mt-1 text-xs">
                     {ESTADOS[order.estado as keyof typeof ESTADOS]?.label ?? order.estado} · {order.staleDays} días sin cambio
                   </p>
                 </div>
-                <Link aria-label={`Revisar orden ${order.id.slice(0, 8)}`} className="grid size-9 shrink-0 place-items-center rounded-xl border border-amber-200 bg-white text-amber-900 transition hover:bg-amber-100" href={`/ordenes/${order.id}`}>
+                <Link aria-label={`Revisar orden ${order.id.slice(0, 8)}`} className="dashboard-followup-action grid size-9 shrink-0 place-items-center rounded-xl border transition" href={`/ordenes/${order.id}`}>
                   <ArrowUpRight className="size-4" aria-hidden="true" />
                 </Link>
               </li>
