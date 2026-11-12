@@ -8,6 +8,7 @@ import { ACTIVE_STATUSES, ESTADOS } from "@/lib/estados";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { workOrderStatuses } from "@/lib/validations/api";
 import { VehicleEditForm } from "@/app/components/vehiculos/vehicle-edit-form";
+import { VehiclePhotoManager } from "@/app/components/vehiculos/vehicle-photo-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function VehicleDetailPage({
   const supabase = await createSupabaseServerClient();
   const { data: vehicle, error: vehicleError } = await supabase
     .from("vehiculos")
-    .select("id, placa, marca, modelo, anio, color, kilometraje, propietario_nombre, propietario_telefono")
+    .select("id, placa, marca, modelo, anio, color, kilometraje, propietario_nombre, propietario_telefono, foto_url")
     .eq("id", vehiculoId)
     .maybeSingle();
   if (vehicleError) throw new Error(`No se pudo cargar el vehículo: ${vehicleError.message}`);
@@ -56,6 +57,9 @@ export default async function VehicleDetailPage({
     orders.map((order) => resolveVehiclePhotoUrls(order.fotos_vehiculo ?? [])),
   );
   const photos = photoGroups.flat();
+  const [vehiclePhoto] = vehicle.foto_url
+    ? await resolveVehiclePhotoUrls([{ url: vehicle.foto_url }])
+    : [];
 
   return (
     <main className="mx-auto max-w-5xl space-y-7">
@@ -73,6 +77,13 @@ export default async function VehicleDetailPage({
           Abrir orden
         </Link>
       </header>
+
+      <VehiclePhotoManager
+        photoPath={vehicle.foto_url}
+        photoUrl={vehiclePhoto?.url ?? ""}
+        vehicleId={vehicle.id}
+        vehicleName={`${vehicle.marca} ${vehicle.modelo}`}
+      />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <article className="rounded-2xl border border-line bg-white p-5"><p className="text-xs text-muted">Kilometraje</p><p className="mt-2 flex items-center gap-2 text-lg font-semibold text-ink"><Gauge size={18} />{numberFormatter.format(vehicle.kilometraje)} km</p></article>

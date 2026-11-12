@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Check, Upload } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const maxAvatarSize = 5 * 1024 * 1024;
@@ -216,23 +217,45 @@ export function AccountSettings({
               {name.slice(0, 1).toLocaleUpperCase()}
             </div>
           )}
-          <div className="min-w-0 flex-1 space-y-3">
-            <label className="block text-sm font-medium text-ink">
-              Seleccionar imagen
+          <div className="min-w-0 flex-1">
+            <label
+              className="inline-flex cursor-pointer items-center gap-2.5 rounded-xl border border-line bg-background px-4 py-3 text-sm font-semibold text-ink shadow-sm transition hover:border-sage hover:bg-mist focus-within:outline-none focus-within:ring-2 focus-within:ring-primary/40"
+              htmlFor="account-avatar-file"
+            >
+              <Upload aria-hidden="true" className="size-4 text-primary" />
+              {avatarFile ? "Elegir otra imagen" : "Seleccionar imagen"}
               <input
                 accept="image/jpeg,image/png,image/webp"
-                className="mt-1.5 block w-full text-sm text-muted"
+                className="sr-only"
+                id="account-avatar-file"
                 onChange={(event) => chooseAvatar(event.target.files?.[0] ?? null)}
                 type="file"
               />
             </label>
-            <button
-              className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-              disabled={busy === "avatar" || !avatarFile}
-              type="submit"
-            >
-              {busy === "avatar" ? "Subiendo..." : "Guardar foto"}
-            </button>
+            {avatarFile && (
+              <p className="mt-2 max-w-full truncate text-xs text-muted" title={avatarFile.name}>
+                Seleccionada: {avatarFile.name}
+              </p>
+            )}
+            <div className="mt-4">
+              <button
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45 disabled:shadow-none"
+                disabled={busy === "avatar" || !avatarFile}
+                type="submit"
+              >
+                {busy === "avatar" ? (
+                  <>
+                    <span aria-hidden="true" className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                    Subiendo...
+                  </>
+                ) : (
+                  <>
+                    <Check aria-hidden="true" className="size-4" />
+                    Guardar foto
+                  </>
+                )}
+              </button>
+            </div>
             <FeedbackMessage feedback={feedback.avatar} />
           </div>
         </form>

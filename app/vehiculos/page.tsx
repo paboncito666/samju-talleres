@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { ArrowUpRight, CarFront, Check, ClipboardList, Gauge, Search, UserRound } from "lucide-react";
+import Image from "next/image";
+import { ArrowUpRight, Camera, CarFront, Check, ClipboardList, Gauge, Search, UserRound } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveVehiclePhotoUrls } from "@/lib/storage/photos";
 import { ACTIVE_STATUSES, ESTADOS } from "@/lib/estados";
 import { countActiveOrdersByVehicle } from "@/lib/vehiculos/active-order-counts";
 import { filterVehiclesWithActiveOrders } from "@/lib/vehiculos/active-orders";
@@ -29,7 +31,7 @@ export default async function VehiclesPage({ searchParams }: PageProps) {
       supabase.from("profiles").select("id, nombre").eq("rol", "mecanico").eq("activo", true).order("nombre"),
       (() => {
         let query = supabase.from("vehiculos")
-          .select("id, placa, marca, modelo, anio, color, kilometraje, propietario_nombre, propietario_telefono")
+          .select("id, placa, marca, modelo, anio, color, kilometraje, propietario_nombre, propietario_telefono, foto_url")
           .order("placa").limit(300);
         if (queryText) query = query.or(`placa.ilike.%${queryText}%,propietario_nombre.ilike.%${queryText}%`);
         return query;
@@ -77,6 +79,12 @@ export default async function VehiclesPage({ searchParams }: PageProps) {
   const orderByVehicle = new Map<string, (typeof orders)[number]>();
   for (const order of orders) if (!orderByVehicle.has(order.vehiculo_id)) orderByVehicle.set(order.vehiculo_id, order);
   const filteredVehicles = filterVehiclesWithActiveOrders(vehicles, orders);
+  const photoRecords = await resolveVehiclePhotoUrls(
+    filteredVehicles
+      .filter((vehicle): vehicle is typeof vehicle & { foto_url: string } => Boolean(vehicle.foto_url))
+      .map((vehicle) => ({ id: vehicle.id, url: vehicle.foto_url })),
+  );
+  const photoUrls = new Map(photoRecords.map(({ id, url }) => [id, url]));
 
   return (
     <main className="admin-stagger space-y-7">
@@ -116,9 +124,27 @@ export default async function VehiclesPage({ searchParams }: PageProps) {
               const order = orderByVehicle.get(vehicle.id);
               const status = order ? ESTADOS[order.estado] : null;
               const activeOrderCount = activeOrderCounts.get(vehicle.id) ?? 0;
+              const photoUrl = photoUrls.get(vehicle.id);
               return <article className="admin-reveal group rounded-3xl border border-line bg-white p-5 shadow-[0_12px_35px_-28px_rgba(37,41,39,0.35)] transition duration-300 hover:-translate-y-1 hover:shadow-soft" key={vehicle.id} style={{ animationDelay: `${Math.min(index, 6) * 55}ms` }}>
                 <div className="flex items-start justify-between gap-3">
-                  <span className="grid size-12 place-items-center rounded-2xl bg-mist text-ink transition duration-300 group-hover:scale-105"><CarFront className="size-6" aria-hidden="true" /></span>
+                  <Link
+                    aria-label={photoUrl ? `Ver foto de ${vehicle.marca} ${vehicle.modelo}` : `Agregar foto a ${vehicle.marca} ${vehicle.modelo}`}
+                    className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-2xl bg-mist text-ink transition duration-300 group-hover:scale-105"
+                    href={`/vehiculos/${vehicle.id}`}
+                    title={photoUrl ? "Ver vehículo" : "Agregar foto desde el detalle"}
+                  >
+                    {photoUrl ? (
+                      <Image alt={`${vehicle.marca} ${vehicle.modelo}`} className="object-cover" fill sizes="64px" src={photoUrl} unoptimized />
+                    ) : (
+                      <span className="flex flex-col items-center gap-0.5">
+                        <span className="relative">
+                          <CarFront aria-hidden="true" className="size-6" />
+                          <Camera aria-hidden="true" className="absolute -bottom-1 -right-2 size-3.5 rounded-full bg-mist" />
+                        </span>
+                        <span className="text-[9px] font-medium leading-none">Agregar foto</span>
+                      </span>
+                    )}
+                  </Link>
                   <div className="flex flex-col items-end gap-1.5">
                     <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
                       {activeOrderCount} {activeOrderCount === 1 ? "orden activa" : "órdenes activas"}

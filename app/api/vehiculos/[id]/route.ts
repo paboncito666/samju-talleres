@@ -21,7 +21,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     .from("vehiculos")
     .update(parsed.data)
     .eq("id", id)
-    .select("id, placa, marca, modelo, anio, color, kilometraje, propietario_nombre, propietario_telefono")
+    .select("id, placa, marca, modelo, anio, color, kilometraje, propietario_nombre, propietario_telefono, foto_url")
     .maybeSingle();
 
   if (error) {
