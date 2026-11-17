@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PdfExportButton } from "@/app/components/pdf-export-button";
+import { VehiclePhotoPreview } from "@/app/components/vehiculos/vehicle-photo-preview";
 import { resolveVehiclePhotoUrls } from "@/lib/storage/photos";
 import { RealtimeRefresher } from "@/app/components/realtime/realtime-refresher";
 import { ACTIVE_STATUSES } from "@/lib/estados";
@@ -89,7 +90,7 @@ export default async function VehicleHistoryPage({
   const { data: vehiculo, error: vehiculoError } = await supabase
     .from("vehiculos")
     .select(
-      "id, placa, marca, modelo, anio, color, kilometraje, propietario_nombre",
+      "id, placa, marca, modelo, anio, color, kilometraje, propietario_nombre, foto_url",
     )
     .eq("id", vehiculoId)
     .maybeSingle();
@@ -99,6 +100,10 @@ export default async function VehicleHistoryPage({
   }
 
   if (!vehiculo) notFound();
+
+  const [vehiclePhoto] = vehiculo.foto_url
+    ? await resolveVehiclePhotoUrls([{ url: vehiculo.foto_url }])
+    : [];
 
   const [historyResult, activeOrdersResult] = await Promise.all([
     supabase
@@ -212,41 +217,48 @@ export default async function VehicleHistoryPage({
 
         <section className="overflow-hidden rounded-2xl bg-primary text-white shadow-soft">
           <div className="grid gap-8 p-6 sm:p-9 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div>
-              <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
-                <FileClock aria-hidden="true" size={15} />
-                Historial del vehículo
-              </p>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  {vehiculo.marca} {vehiculo.modelo}
-                </h1>
-                {vehiculo.anio && (
-                  <span className="rounded-full border border-white/20 px-3 py-1 text-sm text-white/75">
-                    {vehiculo.anio}
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+              <VehiclePhotoPreview
+                className="size-24 rounded-2xl border border-white/15 sm:size-32"
+                photoUrl={vehiclePhoto?.url || null}
+                vehicleName={`${vehiculo.marca} ${vehiculo.modelo}`}
+              />
+              <div>
+                <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
+                  <FileClock aria-hidden="true" size={15} />
+                  Historial del vehículo
+                </p>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                    {vehiculo.marca} {vehiculo.modelo}
+                  </h1>
+                  {vehiculo.anio && (
+                    <span className="rounded-full border border-white/20 px-3 py-1 text-sm text-white/75">
+                      {vehiculo.anio}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/70">
+                  <span className="inline-flex items-center gap-2">
+                    <CarFront aria-hidden="true" size={16} />
+                    <span className="font-medium tracking-wide text-white">
+                      {vehiculo.placa}
+                    </span>
                   </span>
-                )}
-              </div>
-              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/70">
-                <span className="inline-flex items-center gap-2">
-                  <CarFront aria-hidden="true" size={16} />
-                  <span className="font-medium tracking-wide text-white">
-                    {vehiculo.placa}
-                  </span>
+                  {vehiculo.color && <span>{vehiculo.color}</span>}
+                  {vehiculo.propietario_nombre && (
+                    <span>{vehiculo.propietario_nombre}</span>
+                  )}
+                </div>
+                <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white">
+                  {vehicleStatus === "Entregado al cliente" ? (
+                    <CircleCheck aria-hidden="true" size={16} />
+                  ) : (
+                    <Clock3 aria-hidden="true" size={16} />
+                  )}
+                  {vehicleStatus}
                 </span>
-                {vehiculo.color && <span>{vehiculo.color}</span>}
-                {vehiculo.propietario_nombre && (
-                  <span>{vehiculo.propietario_nombre}</span>
-                )}
               </div>
-              <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white">
-                {vehicleStatus === "Entregado al cliente" ? (
-                  <CircleCheck aria-hidden="true" size={16} />
-                ) : (
-                  <Clock3 aria-hidden="true" size={16} />
-                )}
-                {vehicleStatus}
-              </span>
             </div>
             {vehiculo.kilometraje !== null && (
               <div className="flex items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-3 lg:min-w-48">

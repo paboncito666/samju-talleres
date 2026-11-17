@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Archive, ArrowUpRight, CarFront, Search } from "lucide-react";
 import { PageHero, PageHeroStat } from "@/app/components/ui/page-hero";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { VehiclePhotoPreview } from "@/app/components/vehiculos/vehicle-photo-preview";
+import { resolveVehiclePhotoUrls } from "@/lib/storage/photos";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +16,7 @@ export default async function HistorySearchPage({
   const queryText = filters.q?.trim().slice(0, 80).replace(/[%_,]/g, "") ?? "";
   let query = (await createSupabaseServerClient())
     .from("vehiculos")
-    .select("id, placa, marca, modelo, anio, color, propietario_nombre", { count: "exact" })
+    .select("id, placa, marca, modelo, anio, color, propietario_nombre, foto_url", { count: "exact" })
     .order("placa")
     .limit(300);
   if (queryText) {
@@ -22,6 +24,12 @@ export default async function HistorySearchPage({
   }
   const { data: vehicles, count, error } = await query;
   if (error) throw new Error(`No se pudieron consultar los vehículos para el historial: ${error.message}`);
+  const photoRecords = await resolveVehiclePhotoUrls(
+    vehicles
+      .filter((vehicle): vehicle is typeof vehicle & { foto_url: string } => Boolean(vehicle.foto_url))
+      .map((vehicle) => ({ id: vehicle.id, url: vehicle.foto_url })),
+  );
+  const photoUrls = new Map(photoRecords.map(({ id, url }) => [id, url]));
 
   return (
     <main className="admin-stagger space-y-7">
@@ -62,31 +70,46 @@ export default async function HistorySearchPage({
         </p>
       ) : (
         <section aria-label="Vehículos con historial" className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {vehicles.map((vehicle, index) => (
-            <Link
-              className="admin-reveal group rounded-3xl border border-line bg-white p-5 shadow-[0_12px_35px_-28px_rgba(37,41,39,0.35)] transition duration-300 hover:-translate-y-1 hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
-              href={`/historial/${vehicle.id}`}
-              key={vehicle.id}
-              style={{ animationDelay: `${Math.min(index, 6) * 55}ms` }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <span className="grid size-11 place-items-center rounded-2xl bg-mist text-ink transition duration-300 group-hover:scale-105">
-                  <CarFront className="size-5" aria-hidden="true" />
-                </span>
-                <ArrowUpRight className="size-4 text-muted transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-ink" aria-hidden="true" />
-              </div>
-              <h2 className="mt-4 text-lg font-semibold tracking-tight text-ink">
-                {vehicle.marca} {vehicle.modelo} {vehicle.anio ?? ""}
-              </h2>
-              <p className="mt-1 inline-flex rounded-lg bg-background px-2.5 py-1 text-xs font-semibold tracking-wide text-ink">
-                {vehicle.placa}{vehicle.color ? ` · ${vehicle.color}` : ""}
-              </p>
-              <p className="mt-4 border-t border-line pt-3 text-sm text-muted">
-                Propietario: <span className="font-medium text-ink">{vehicle.propietario_nombre || "Sin registrar"}</span>
-              </p>
-              <span className="mt-4 block text-sm font-semibold text-emerald-900">Abrir historial de este vehículo</span>
-            </Link>
-          ))}
+          {vehicles.map((vehicle, index) => {
+            const vehicleName = `${vehicle.marca} ${vehicle.modelo}`.trim();
+            return (
+              <article
+                className="admin-reveal group rounded-3xl border border-line bg-white p-5 shadow-[0_12px_35px_-28px_rgba(37,41,39,0.35)] transition duration-300 hover:-translate-y-1 hover:shadow-soft"
+                key={vehicle.id}
+                style={{ animationDelay: `${Math.min(index, 6) * 55}ms` }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <VehiclePhotoPreview
+                    className="size-11 rounded-2xl transition duration-300 group-hover:scale-105"
+                    photoUrl={photoUrls.get(vehicle.id) || null}
+                    vehicleName={vehicleName}
+                  />
+                  <Link
+                    aria-label={`Abrir historial de ${vehicleName}`}
+                    className="rounded-full p-2 text-muted transition hover:bg-mist hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
+                    href={`/historial/${vehicle.id}`}
+                  >
+                    <ArrowUpRight className="size-4" aria-hidden="true" />
+                  </Link>
+                </div>
+                <Link
+                  className="mt-4 block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
+                  href={`/historial/${vehicle.id}`}
+                >
+                  <h2 className="text-lg font-semibold tracking-tight text-ink">
+                    {vehicle.marca} {vehicle.modelo} {vehicle.anio ?? ""}
+                  </h2>
+                  <p className="mt-1 inline-flex rounded-lg bg-background px-2.5 py-1 text-xs font-semibold tracking-wide text-ink">
+                    {vehicle.placa}{vehicle.color ? ` · ${vehicle.color}` : ""}
+                  </p>
+                  <p className="mt-4 border-t border-line pt-3 text-sm text-muted">
+                    Propietario: <span className="font-medium text-ink">{vehicle.propietario_nombre || "Sin registrar"}</span>
+                  </p>
+                  <span className="mt-4 block text-sm font-semibold text-emerald-900">Abrir historial de este vehículo</span>
+                </Link>
+              </article>
+            );
+          })}
         </section>
       )}
     </main>

@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   CalendarDays,
-  CarFront,
   ClipboardList,
   FileClock,
   Gauge,
@@ -22,6 +21,7 @@ import type { WorkOrderStatus } from "@/lib/validations/api";
 import { InternalNotes } from "./internal-notes";
 import { WorkItems } from "./work-items";
 import { ArchiveOrderButton } from "./archive-order-button";
+import { VehiclePhotoPreview } from "@/app/components/vehiculos/vehicle-photo-preview";
 
 export const dynamic = "force-dynamic";
 
@@ -153,7 +153,7 @@ export default async function WorkOrderDetailPage({
   const [vehicleResult, notesResult] = await Promise.all([
     supabase
       .from("vehiculos")
-      .select("id, placa, marca, modelo, anio, color, kilometraje")
+      .select("id, placa, marca, modelo, anio, color, kilometraje, foto_url")
       .eq("id", orden.vehiculo_id)
       .maybeSingle(),
     supabase
@@ -191,6 +191,9 @@ export default async function WorkOrderDetailPage({
     );
   }
   if (!vehicleResult.data) notFound();
+  const [vehiclePhoto] = vehicleResult.data.foto_url
+    ? await resolveVehiclePhotoUrls([{ url: vehicleResult.data.foto_url }])
+    : [];
 
   const profileNames = new Map(
     (profilesResult.data ?? []).map((profile) => [profile.id, profile.nombre]),
@@ -334,12 +337,16 @@ export default async function WorkOrderDetailPage({
               <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 Vehículo
               </h2>
-              <Link
-                className="mt-3 inline-flex items-center gap-3 rounded-xl bg-mist/70 px-4 py-3 transition hover:bg-mist"
-                href={`/historial/${vehicleResult.data.id}`}
-              >
-                <CarFront aria-hidden="true" className="text-muted" size={20} />
-                <span>
+              <div className="mt-3 flex items-center gap-3">
+                <VehiclePhotoPreview
+                  className="size-16 rounded-xl border border-line"
+                  photoUrl={vehiclePhoto?.url || null}
+                  vehicleName={`${vehicleResult.data.marca} ${vehicleResult.data.modelo}`}
+                />
+                <Link
+                  className="min-w-0 rounded-xl bg-mist/70 px-4 py-3 transition hover:bg-mist"
+                  href={`/historial/${vehicleResult.data.id}`}
+                >
                   <span className="block text-sm font-semibold text-ink">
                     {vehicleResult.data.marca} {vehicleResult.data.modelo}
                     {vehicleResult.data.anio
@@ -352,8 +359,8 @@ export default async function WorkOrderDetailPage({
                       ? ` · ${vehicleResult.data.color}`
                       : ""}
                   </span>
-                </span>
-              </Link>
+                </Link>
+              </div>
               {vehicleResult.data.kilometraje !== null && (
                 <p className="mt-3 flex items-center gap-2 text-xs text-muted">
                   <Gauge aria-hidden="true" size={14} />
