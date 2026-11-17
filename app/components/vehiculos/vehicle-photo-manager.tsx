@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Check, Trash2, Upload } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 const maxSize = 5 * 1024 * 1024;
 const acceptedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -79,7 +80,7 @@ export function VehiclePhotoManager({
           .from("fotos-vehiculos")
           .remove([oldStoragePath]);
         if (removeError) {
-          setError(`La foto se actualizó, pero no se pudo eliminar la anterior: ${removeError.message}`);
+          setError(`La foto se actualizó, pero no se pudo eliminar la anterior: ${getUserFacingErrorMessage(removeError, "No se pudo eliminar el archivo anterior.")}`);
         }
       }
 
@@ -101,14 +102,13 @@ export function VehiclePhotoManager({
         try {
           const { error: cleanupError } = await createSupabaseBrowserClient()
             .storage.from("fotos-vehiculos").remove([uploadedPath]);
-          if (cleanupError) cleanupMessage = ` No se pudo limpiar el archivo subido: ${cleanupError.message}`;
+          if (cleanupError) cleanupMessage = ` ${getUserFacingErrorMessage(cleanupError, "No se pudo limpiar el archivo subido.")}`;
         } catch (cleanupCause) {
-          const reason = cleanupCause instanceof Error ? cleanupCause.message : "Error inesperado.";
-          cleanupMessage = ` No se pudo limpiar el archivo subido: ${reason}`;
+          cleanupMessage = ` ${getUserFacingErrorMessage(cleanupCause, "No se pudo limpiar el archivo subido.")}`;
         }
       }
-      const reason = cause instanceof Error ? cause.message : "Error inesperado.";
-      setError(`No se pudo guardar la fotografía: ${reason}.${cleanupMessage}`);
+      const reason = getUserFacingErrorMessage(cause, "Ocurrió un error inesperado.");
+      setError(`No se pudo guardar la fotografía: ${reason}${cleanupMessage}`);
     } finally {
       setBusy(false);
     }
@@ -140,11 +140,11 @@ export function VehiclePhotoManager({
         .remove([oldStoragePath]);
       setDisplayPhotoUrl("");
       setNotice(removeError
-        ? `La foto se quitó del vehículo, pero no se pudo eliminar el archivo: ${removeError.message}`
+        ? `La foto se quitó del vehículo, pero no se pudo eliminar el archivo: ${getUserFacingErrorMessage(removeError, "No se pudo eliminar el archivo de almacenamiento.")}`
         : "La fotografía se quitó del vehículo.");
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo quitar la fotografía.");
+      setError(getUserFacingErrorMessage(cause, "No se pudo quitar la fotografía."));
     } finally {
       setBusy(false);
     }

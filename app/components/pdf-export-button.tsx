@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Download, FileText } from "lucide-react";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 type VehiclePdfDetails = {
   make: string;
@@ -283,11 +284,7 @@ export function PdfExportButton({
 
       pdf.save(report.fileName);
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? `No se pudo generar el PDF: ${error.message}`
-          : "No se pudo generar el PDF por un error inesperado.",
-      );
+      setErrorMessage(getUserFacingErrorMessage(error, "No se pudo generar el PDF. Inténtalo de nuevo."));
     } finally {
       setIsExporting(false);
     }

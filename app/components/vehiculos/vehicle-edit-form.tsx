@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { vehicleUpdateSchema } from "@/lib/validations/api";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 export interface EditableVehicle {
   id: string;
@@ -56,7 +57,7 @@ export function VehicleEditForm({ vehicle }: { vehicle: EditableVehicle }) {
       setEditing(false);
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Ocurrió un error inesperado.");
+      setError(getUserFacingErrorMessage(cause, "No se pudo actualizar el vehículo. Inténtalo de nuevo."));
     } finally {
       setBusy(false);
     }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Ban, RotateCcw, ShieldAlert, Trash2, X } from "lucide-react";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 type AccountAction =
   | { kind: "status"; active: boolean }
@@ -74,7 +75,7 @@ export function StaffAccountActions({
       );
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Ocurrió un error inesperado.");
+      setError(getUserFacingErrorMessage(cause, "No se pudo actualizar la cuenta. Inténtalo de nuevo."));
     } finally {
       setBusy(false);
     }

@@ -272,14 +272,14 @@ export default async function VehicleHistoryPage({
               </div>
             )}
           </div>
-          <div className="grid grid-cols-3 border-t border-white/10">
+          <div className="grid grid-cols-1 border-t border-white/10 min-[360px]:grid-cols-3">
             <div className="px-4 py-4 sm:px-8">
               <p className="text-2xl font-semibold">{ordenesVista.length}</p>
               <p className="mt-1 text-xs text-white/60 sm:text-sm">
                 Órdenes en historial
               </p>
             </div>
-            <div className="border-x border-white/10 px-4 py-4 sm:px-8">
+            <div className="border-y border-white/10 px-4 py-4 min-[360px]:border-x min-[360px]:border-y-0 sm:px-8">
               <p className="text-2xl font-semibold">{trabajos.length}</p>
               <p className="mt-1 text-xs text-white/60 sm:text-sm">
                 Trabajos registrados

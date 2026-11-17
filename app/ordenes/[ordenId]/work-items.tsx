@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { workItemCreateSchema } from "@/lib/validations/api";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 export interface WorkItem {
   id: string;
@@ -63,7 +64,7 @@ export function WorkItems({
       form.reset();
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Ocurrió un error inesperado.");
+      setError(getUserFacingErrorMessage(cause, "No se pudo agregar el trabajo. Inténtalo de nuevo."));
     } finally {
       setBusy(false);
     }
@@ -83,7 +84,7 @@ export function WorkItems({
       setItems((current) => current.map((candidate) => candidate.id === item.id ? result.data : candidate));
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Ocurrió un error inesperado.");
+      setError(getUserFacingErrorMessage(cause, "No se pudo actualizar el trabajo. Inténtalo de nuevo."));
     } finally {
       setBusy(false);
     }

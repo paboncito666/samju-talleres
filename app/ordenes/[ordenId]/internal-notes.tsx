@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { z } from "zod";
 import { AlertCircle, MessageSquareText, Send, UserRound } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 const noteSchema = z
   .string()
@@ -62,7 +63,7 @@ export function InternalNotes({
       } = await supabase.auth.getUser();
 
       if (userError) {
-        throw new Error(`No se pudo verificar tu sesión: ${userError.message}`);
+        throw new Error(getUserFacingErrorMessage(userError, "No se pudo verificar tu sesión. Inténtalo de nuevo."));
       }
       if (!user) {
         throw new Error("Inicia sesión para agregar una nota interna.");
@@ -79,7 +80,7 @@ export function InternalNotes({
         .single();
 
       if (insertError) {
-        throw new Error(`No se pudo guardar la nota: ${insertError.message}`);
+        throw new Error(getUserFacingErrorMessage(insertError, "No se pudo guardar la nota. Inténtalo de nuevo."));
       }
 
       setNotes((currentNotes) => [
@@ -89,9 +90,7 @@ export function InternalNotes({
       setContent("");
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Ocurrió un error inesperado al guardar la nota.",
+        getUserFacingErrorMessage(error, "Ocurrió un error inesperado al guardar la nota."),
       );
     } finally {
       setIsSubmitting(false);

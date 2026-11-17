@@ -31,7 +31,7 @@ export function PageHero({
         </div>
         {action}
       </div>
-      {children && <div className="relative z-10 mt-7 grid grid-cols-3 gap-2 sm:mt-8 sm:gap-3">{children}</div>}
+      {children && <div className="relative z-10 mt-7 grid grid-cols-1 gap-2 min-[360px]:grid-cols-3 sm:mt-8 sm:gap-3">{children}</div>}
     </header>
   );
 }

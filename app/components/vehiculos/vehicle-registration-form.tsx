@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { vehicleCreateSchema } from "@/lib/validations/api";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 export function VehicleRegistrationForm() {
   const router = useRouter();
@@ -41,7 +42,7 @@ export function VehicleRegistrationForm() {
       router.push(`/ordenes/nueva?vehiculoId=${encodeURIComponent(result.data.id)}`);
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Ocurrió un error inesperado.");
+      setError(getUserFacingErrorMessage(cause, "No se pudo registrar el vehículo. Inténtalo de nuevo."));
     } finally {
       setBusy(false);
     }
