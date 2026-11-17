@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { canAccessPath, isProfileRole } from "@/lib/auth/permissions";
+import { applySessionCookiePersistence } from "@/lib/supabase/session-persistence";
 
 export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,10 +19,7 @@ export async function proxy(request: NextRequest) {
         for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
         response = NextResponse.next({ request });
         for (const { name, value, options } of cookiesToSet) {
-          const cookieOptions = { ...options };
-          if (!persistSession && cookieOptions.maxAge !== 0) {
-            delete cookieOptions.maxAge;
-          }
+          const cookieOptions = applySessionCookiePersistence(options, persistSession);
           response.cookies.set(name, value, cookieOptions);
         }
       },

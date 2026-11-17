@@ -46,8 +46,8 @@ export function AuthForm() {
       return;
     }
     try {
-      const supabase = createSupabaseBrowserClient();
       setSupabaseSessionPersistence(remember);
+      const supabase = createSupabaseBrowserClient();
       const { error } = await supabase.auth.signInWithPassword(parsed.data);
       if (error) throw error;
       router.replace("/dashboard");

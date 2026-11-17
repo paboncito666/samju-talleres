@@ -2,6 +2,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { applySessionCookiePersistence } from "@/lib/supabase/session-persistence";
 
 let supabase: SupabaseClient | undefined;
 let persistSession = true;
@@ -21,17 +22,28 @@ function getBrowserCookies() {
 }
 
 function setBrowserCookie(name: string, value: string, options: Record<string, unknown>) {
-  const attributes = [`Path=${typeof options.path === "string" ? options.path : "/"}`];
-  if (typeof options.domain === "string") attributes.push(`Domain=${options.domain}`);
-  if (options.maxAge === 0) attributes.push("Max-Age=0");
-  else if (persistSession && typeof options.maxAge === "number") {
-    attributes.push(`Max-Age=${options.maxAge}`);
+  const cookieOptions = applySessionCookiePersistence(
+    options as { maxAge?: number } & Record<string, unknown>,
+    persistSession,
+  );
+  const attributes = [
+    `Path=${typeof cookieOptions.path === "string" ? cookieOptions.path : "/"}`,
+  ];
+  if (typeof cookieOptions.domain === "string") {
+    attributes.push(`Domain=${cookieOptions.domain}`);
   }
-  if (options.expires instanceof Date) {
-    attributes.push(`Expires=${options.expires.toUTCString()}`);
+  if (typeof cookieOptions.maxAge === "number") {
+    attributes.push(`Max-Age=${cookieOptions.maxAge}`);
   }
-  if (options.sameSite) attributes.push(`SameSite=${String(options.sameSite)}`);
-  if (options.secure || window.location.protocol === "https:") attributes.push("Secure");
+  if (cookieOptions.expires instanceof Date) {
+    attributes.push(`Expires=${cookieOptions.expires.toUTCString()}`);
+  }
+  if (cookieOptions.sameSite) {
+    attributes.push(`SameSite=${String(cookieOptions.sameSite)}`);
+  }
+  if (cookieOptions.secure || window.location.protocol === "https:") {
+    attributes.push("Secure");
+  }
   document.cookie = `${name}=${value}; ${attributes.join("; ")}`;
 }
 
@@ -40,7 +52,7 @@ export function setSupabaseSessionPersistence(remember: boolean) {
   setBrowserCookie(
     "samju-remember-session",
     remember ? "1" : "0",
-    remember ? { maxAge: 400 * 24 * 60 * 60 } : {},
+    applySessionCookiePersistence({}, remember),
   );
 }
 
