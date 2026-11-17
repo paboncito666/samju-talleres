@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { EtapaFoto } from "@/types";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 const maxSize = 5 * 1024 * 1024;
 const acceptedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -70,16 +71,13 @@ export function PhotoUpload({ orderId }: { orderId: string }) {
               const { error: cleanupError } = await client.storage
                 .from("fotos-vehiculos")
                 .remove([path]);
-              if (cleanupError) cleanupMessage = ` No se pudo limpiar el archivo: ${cleanupError.message}.`;
+              if (cleanupError) cleanupMessage = ` ${getUserFacingErrorMessage(cleanupError, "No se pudo limpiar el archivo.")}`;
             } catch (cleanupCause) {
-              const reason = cleanupCause instanceof Error
-                ? cleanupCause.message
-                : "Error inesperado.";
-              cleanupMessage = ` No se pudo limpiar el archivo: ${reason}.`;
+              cleanupMessage = ` ${getUserFacingErrorMessage(cleanupCause, "No se pudo limpiar el archivo.")}`;
             }
           }
-          const reason = cause instanceof Error ? cause.message : "Error inesperado.";
-          failures.push(`${file.name}: ${reason}.${cleanupMessage}`);
+          const reason = getUserFacingErrorMessage(cause, "Ocurrió un error inesperado.");
+          failures.push(`${file.name}: ${reason}${cleanupMessage}`);
           failedFiles.push(file);
         }
       }
@@ -93,7 +91,7 @@ export function PhotoUpload({ orderId }: { orderId: string }) {
         setError(`No se pudieron subir ${failures.length} fotografías: ${failures.join("; ")}`);
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo subir la fotografía.");
+      setError(getUserFacingErrorMessage(cause, "No se pudo subir la fotografía."));
     } finally {
       setBusy(false);
     }

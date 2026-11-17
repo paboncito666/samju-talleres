@@ -97,7 +97,7 @@ export default async function StaffRolesPage({ searchParams }: PageProps) {
             <ArrowUpRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
           </a>
         </div>
-        <div className="relative z-10 mt-8 grid max-w-3xl grid-cols-3 gap-2 sm:gap-3">
+        <div className="relative z-10 mt-8 grid max-w-3xl grid-cols-1 gap-2 min-[360px]:grid-cols-3 sm:gap-3">
           <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-3 backdrop-blur-sm sm:p-4">
             <div className="flex min-h-9 items-start justify-between gap-1 text-white/70 sm:min-h-0">
               <span className="text-[11px] font-medium leading-4 sm:text-xs">Personas en el equipo</span>

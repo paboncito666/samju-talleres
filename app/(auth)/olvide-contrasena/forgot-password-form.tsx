@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 const emailSchema = z.string().trim().email("Ingresa un correo válido.");
 
@@ -39,11 +40,7 @@ export function ForgotPasswordForm() {
       );
       form.reset();
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "No se pudo enviar el enlace. Inténtalo de nuevo.",
-      );
+      setErrorMessage(getUserFacingErrorMessage(error, "No se pudo enviar el enlace. Inténtalo de nuevo."));
     } finally {
       setBusy(false);
     }

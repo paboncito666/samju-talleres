@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -33,11 +34,7 @@ export function ResetPasswordForm() {
       router.replace("/dashboard");
       router.refresh();
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "No se pudo actualizar la contraseña. Solicita un enlace nuevo.",
-      );
+      setErrorMessage(getUserFacingErrorMessage(error, "No se pudo actualizar la contraseña. Solicita un enlace nuevo."));
     } finally {
       setBusy(false);
     }

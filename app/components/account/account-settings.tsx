@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Upload } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 const maxAvatarSize = 5 * 1024 * 1024;
 const acceptedAvatarTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -80,7 +81,7 @@ export function AccountSettings({
     } catch (error) {
       setSectionFeedback("name", {
         kind: "error",
-        message: error instanceof Error ? error.message : "No se pudo actualizar el nombre.",
+        message: getUserFacingErrorMessage(error, "No se pudo actualizar el nombre."),
       });
     } finally {
       setBusy("");
@@ -128,7 +129,7 @@ export function AccountSettings({
     } catch (error) {
       setSectionFeedback("avatar", {
         kind: "error",
-        message: error instanceof Error ? error.message : "No se pudo actualizar la foto.",
+        message: getUserFacingErrorMessage(error, "No se pudo actualizar la foto."),
       });
     } finally {
       setBusy("");
@@ -160,7 +161,7 @@ export function AccountSettings({
     } catch (error) {
       setSectionFeedback("email", {
         kind: "error",
-        message: error instanceof Error ? error.message : "No se pudo solicitar el cambio de correo.",
+        message: getUserFacingErrorMessage(error, "No se pudo solicitar el cambio de correo."),
       });
     } finally {
       setBusy("");
@@ -188,7 +189,7 @@ export function AccountSettings({
     } catch (error) {
       setSectionFeedback("password", {
         kind: "error",
-        message: error instanceof Error ? error.message : "No se pudo actualizar la contraseña.",
+        message: getUserFacingErrorMessage(error, "No se pudo actualizar la contraseña."),
       });
     } finally {
       setBusy("");

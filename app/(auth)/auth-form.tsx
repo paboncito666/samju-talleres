@@ -7,6 +7,7 @@ import { ArrowRight, LockKeyhole, Mail, ShieldCheck, Wrench } from "lucide-react
 import { z } from "zod";
 import { createSupabaseBrowserClient, setSupabaseSessionPersistence } from "@/lib/supabase/client";
 import { safeReturnPath } from "@/lib/auth/return-path";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 const schema = z.object({
   email: z.string().trim().email("Ingresa un correo válido."),
@@ -53,7 +54,7 @@ export function AuthForm() {
       router.replace("/dashboard");
       router.refresh();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "No se pudo completar el acceso.");
+      setErrorMessage(getUserFacingErrorMessage(error, "No se pudo completar el acceso."));
     } finally {
       setBusy(false);
     }
@@ -70,7 +71,7 @@ export function AuthForm() {
       });
       if (error) throw error;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "No se pudo iniciar sesión con Google.");
+      setErrorMessage(getUserFacingErrorMessage(error, "No se pudo iniciar sesión con Google."));
       setBusy(false);
     }
   }

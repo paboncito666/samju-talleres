@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, CheckCircle2, MailPlus, Send, UserPlus } from "lucide-react";
 import { staffInvitationSchema } from "@/lib/validations/api";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 export function StaffInvitationForm() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export function StaffInvitationForm() {
       form.reset();
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Ocurrió un error inesperado.");
+      setError(getUserFacingErrorMessage(cause, "No se pudo enviar la invitación. Inténtalo de nuevo."));
     } finally {
       setBusy(false);
     }

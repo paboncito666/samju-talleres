@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { workOrderCreateSchema } from "@/lib/validations/api";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 type VehicleOption = { id: string; placa: string; marca: string; modelo: string };
 type MechanicOption = { id: string; nombre: string };
@@ -49,7 +50,7 @@ export function WorkOrderForm({
       router.push(`/ordenes/${result.data.id}`);
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Ocurrió un error inesperado.");
+      setError(getUserFacingErrorMessage(cause, "No se pudo abrir la orden. Inténtalo de nuevo."));
     } finally {
       setBusy(false);
     }

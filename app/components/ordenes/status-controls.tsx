@@ -9,6 +9,7 @@ import {
 import { ESTADOS } from "@/lib/estados";
 import { getAllowedOrderTransitions } from "@/lib/ordenes/workflow";
 import type { ProfileRole } from "@/lib/auth/permissions";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 export function StatusControls({
   orderId,
@@ -52,7 +53,7 @@ export function StatusControls({
       if (!response.ok) throw new Error(result.error ?? "No se pudo actualizar la orden.");
       router.refresh();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Ocurrió un error inesperado.");
+      setError(getUserFacingErrorMessage(cause, "No se pudo actualizar la orden. Inténtalo de nuevo."));
     } finally {
       setBusy(false);
     }

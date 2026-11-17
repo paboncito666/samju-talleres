@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Archive, ShieldAlert, X } from "lucide-react";
+import { getUserFacingErrorMessage } from "@/lib/errors/user-facing-message";
 
 export function ArchiveOrderButton({
   orderId,
@@ -34,7 +35,7 @@ export function ArchiveOrderButton({
       if (!response.ok) throw new Error(result.error ?? "No se pudo archivar la orden.");
       router.push(`/historial/${vehicleId}?archivada=1`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Ocurrió un error inesperado.");
+      setError(getUserFacingErrorMessage(cause, "No se pudo archivar la orden. Inténtalo de nuevo."));
     } finally {
       setBusy(false);
     }
