@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { applySessionCookiePersistence } from "@/lib/supabase/session-persistence";
 
 export async function createSupabaseServerClient(): Promise<SupabaseClient> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -23,10 +24,7 @@ export async function createSupabaseServerClient(): Promise<SupabaseClient> {
       setAll(cookiesToSet) {
         try {
           for (const { name, value, options } of cookiesToSet) {
-            const cookieOptions = { ...options };
-            if (!persistSession && cookieOptions.maxAge !== 0) {
-              delete cookieOptions.maxAge;
-            }
+            const cookieOptions = applySessionCookiePersistence(options, persistSession);
             cookieStore.set(name, value, cookieOptions);
           }
         } catch {
