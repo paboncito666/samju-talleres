@@ -5,6 +5,8 @@ const STORAGE_PREFIX = "storage:fotos-vehiculos/";
 export async function resolveVehiclePhotoUrls<
   T extends { url: string },
 >(photos: T[]): Promise<T[]> {
+  if (photos.length === 0) return photos;
+
   const supabase = await createSupabaseServerClient();
   return Promise.all(
     photos.map(async (photo) => {

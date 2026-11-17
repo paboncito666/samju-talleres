@@ -4,6 +4,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ACTIVE_STATUSES, ESTADOS } from "@/lib/estados";
 import { RealtimeRefresher } from "@/app/components/realtime/realtime-refresher";
 import { PageHero, PageHeroStat } from "@/app/components/ui/page-hero";
+import { VehiclePhotoPreview } from "@/app/components/vehiculos/vehicle-photo-preview";
+import { resolveVehiclePhotoUrls } from "@/lib/storage/photos";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +24,7 @@ export default async function OrdersPage({
   const q = filters.q?.trim().replace(/[%_,]/g, "") ?? "";
   const statusFilter = ACTIVE_STATUSES.find((status) => status === filters.estado);
   let query = supabase.from("ordenes_trabajo")
-    .select("id, vehiculo_id, mecanico_id, estado, descripcion_trabajo, tipo_servicio, fecha_ingreso, fecha_estimada_entrega, vehiculos!inner(placa, marca, modelo, propietario_nombre)")
+    .select("id, vehiculo_id, mecanico_id, estado, descripcion_trabajo, tipo_servicio, fecha_ingreso, fecha_estimada_entrega, vehiculos!inner(id, placa, marca, modelo, propietario_nombre, foto_url)")
     .is("archivada_en", null)
     .in("estado", [...ACTIVE_STATUSES])
     .order("fecha_ingreso", { ascending: false })
@@ -38,6 +40,15 @@ export default async function OrdersPage({
         return terms.some((term) => term?.toLowerCase().includes(q.toLowerCase()));
       })
     : orders;
+  const vehiclePhotoPaths = new Map<string, string>();
+  for (const order of visible) {
+    const vehicle = Array.isArray(order.vehiculos) ? order.vehiculos[0] : order.vehiculos;
+    if (vehicle?.foto_url) vehiclePhotoPaths.set(vehicle.id, vehicle.foto_url);
+  }
+  const vehiclePhotoRecords = await resolveVehiclePhotoUrls(
+    Array.from(vehiclePhotoPaths, ([id, url]) => ({ id, url })),
+  );
+  const vehiclePhotoUrls = new Map(vehiclePhotoRecords.map(({ id, url }) => [id, url]));
   const inProgressCount = visible.filter((order) => order.estado !== "LISTO").length;
   const readyCount = visible.filter((order) => order.estado === "LISTO").length;
 
@@ -75,24 +86,32 @@ export default async function OrdersPage({
           <div className="grid gap-3 md:grid-cols-2">{visible.map((order, index) => {
             const vehicle = Array.isArray(order.vehiculos) ? order.vehiculos[0] : order.vehiculos;
             const status = ESTADOS[order.estado as keyof typeof ESTADOS];
-            return <Link className="admin-reveal group relative overflow-hidden rounded-3xl border border-line bg-white p-5 shadow-[0_12px_35px_-28px_rgba(37,41,39,0.35)] transition duration-300 hover:-translate-y-1 hover:border-emerald-900/20 hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700" href={`/ordenes/${order.id}`} key={order.id} style={{ animationDelay: `${Math.min(index, 6) * 55}ms` }}>
+            const vehicleName = `${vehicle?.marca ?? "Vehículo"} ${vehicle?.modelo ?? ""}`.trim();
+            return <article className="admin-reveal group relative overflow-hidden rounded-3xl border border-line bg-white p-5 shadow-[0_12px_35px_-28px_rgba(37,41,39,0.35)] transition duration-300 hover:-translate-y-1 hover:border-emerald-900/20 hover:shadow-soft" key={order.id} style={{ animationDelay: `${Math.min(index, 6) * 55}ms` }}>
               <div className="flex items-start justify-between gap-3">
-                <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-mist text-ink transition duration-300 group-hover:scale-105"><CarFront className="size-5" aria-hidden="true" /></span>
+                <VehiclePhotoPreview
+                  className="size-11 rounded-2xl transition duration-300 group-hover:scale-105"
+                  photoUrl={vehiclePhotoUrls.get(order.vehiculo_id) || null}
+                  vehicleName={vehicleName}
+                />
                 <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${status?.color ?? "bg-mist text-ink"}`}>{status?.label ?? order.estado}</span>
               </div>
-              <div className="mt-4">
+              <Link
+                className="mt-4 block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
+                href={`/ordenes/${order.id}`}
+              >
                 <span className="block text-lg font-semibold tracking-tight text-ink">{vehicle?.marca} {vehicle?.modelo} <span className="font-normal text-muted">· {vehicle?.placa}</span></span>
                 <span className="mt-1 block text-sm text-muted">{vehicle?.propietario_nombre || "Propietario sin registrar"}</span>
-              </div>
-              <p className="mt-4 line-clamp-2 min-h-10 text-sm leading-5 text-ink">{order.descripcion_trabajo || order.tipo_servicio}</p>
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-xs text-muted">
-                <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-3.5" aria-hidden="true" />Ingreso {new Date(order.fecha_ingreso).toLocaleDateString("es-MX")}</span>
-                <span className="font-medium text-ink">{order.tipo_servicio}</span>
-              </div>
-              <span className="pointer-events-none absolute bottom-4 right-4 grid size-8 translate-y-1 place-items-center rounded-full bg-mist text-ink opacity-0 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
-                <ArrowUpRight className="size-4" aria-hidden="true" />
-              </span>
-            </Link>;
+                <p className="mt-4 line-clamp-2 min-h-10 text-sm leading-5 text-ink">{order.descripcion_trabajo || order.tipo_servicio}</p>
+                <span className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-xs text-muted">
+                  <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-3.5" aria-hidden="true" />Ingreso {new Date(order.fecha_ingreso).toLocaleDateString("es-MX")}</span>
+                  <span className="font-medium text-ink">{order.tipo_servicio}</span>
+                </span>
+                <span className="pointer-events-none absolute bottom-4 right-4 grid size-8 translate-y-1 place-items-center rounded-full bg-mist text-ink opacity-0 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+                  <ArrowUpRight className="size-4" aria-hidden="true" />
+                </span>
+              </Link>
+            </article>;
           })}</div>
         )}
     </main>
