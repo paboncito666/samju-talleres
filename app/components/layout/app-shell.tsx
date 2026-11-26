@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Menu } from "lucide-react";
 import { UserMenu } from "@/app/components/layout/user-menu";
+import { UserGuide } from "@/app/components/help/user-guide";
 import { signOutAction } from "@/app/auth/actions";
 import { canAccessPath, isProfileRole } from "@/lib/auth/permissions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -87,6 +88,7 @@ export async function AppShell({
         </div>
       </header>
       <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-9">{children}</div>
+      <UserGuide role={profile.rol} userId={user.id} />
     </div>
   );
 }
