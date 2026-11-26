@@ -31,14 +31,19 @@ export default function AuthCallbackCompletePage() {
     async function completeAuthentication() {
       const query = new URLSearchParams(window.location.search);
       const fragment = new URLSearchParams(window.location.hash.slice(1));
+      const isRecoveryFlow = query.get("flow") === "recovery";
       const authError = query.get("error") ?? fragment.get("error");
 
       if (authError) {
         const errorCode = query.get("error_code") ?? fragment.get("error_code");
         setMessage(
-          errorCode === "otp_expired"
-            ? "Este enlace ya expiró o fue utilizado. Solicita una nueva invitación al administrador."
-            : "No se pudo validar el enlace. Solicita una nueva invitación al administrador.",
+          isRecoveryFlow
+            ? errorCode === "otp_expired"
+              ? "El enlace de recuperación expiró o ya fue utilizado. Solicita uno nuevo desde «¿Olvidaste tu contraseña?»."
+              : "No se pudo validar el enlace de recuperación. Solicita uno nuevo desde la pantalla de inicio de sesión."
+            : errorCode === "otp_expired"
+              ? "Este enlace ya expiró o fue utilizado. Solicita una nueva invitación al administrador."
+              : "No se pudo validar el enlace. Solicita una nueva invitación al administrador.",
         );
         return;
       }
@@ -75,7 +80,9 @@ export default function AuthCallbackCompletePage() {
           authFailure = error;
         } else {
           setMessage(
-            "El enlace no contiene una sesión válida. Solicita una nueva invitación o inicia sesión de nuevo.",
+            isRecoveryFlow
+              ? "El enlace no contiene una sesión válida. Solicita uno nuevo desde «¿Olvidaste tu contraseña?»."
+              : "El enlace no contiene una sesión válida. Solicita una nueva invitación o inicia sesión de nuevo.",
           );
           return;
         }
@@ -84,7 +91,9 @@ export default function AuthCallbackCompletePage() {
       if (authFailure) {
         console.error("No se pudo validar el enlace de autenticación.", authFailure);
         setMessage(
-          "El enlace ya expiró, fue utilizado o no es válido. Solicita una nueva invitación al administrador.",
+          isRecoveryFlow
+            ? "El enlace de recuperación expiró, ya fue utilizado o no es válido. Solicita uno nuevo desde «¿Olvidaste tu contraseña?»."
+            : "El enlace ya expiró, fue utilizado o no es válido. Solicita una nueva invitación al administrador.",
         );
         return;
       }
@@ -96,7 +105,11 @@ export default function AuthCallbackCompletePage() {
       } = await supabase.auth.getUser();
       if (userError || !user) {
         console.error("No se pudo cargar el usuario después de validar el enlace.", userError);
-        setMessage("No se pudo iniciar la sesión. Inténtalo de nuevo.");
+        setMessage(
+          isRecoveryFlow
+            ? "No se pudo validar la sesión de recuperación. Solicita un enlace nuevo."
+            : "No se pudo iniciar la sesión. Inténtalo de nuevo.",
+        );
         return;
       }
 
@@ -145,7 +158,11 @@ export default function AuthCallbackCompletePage() {
 
     completeAuthentication().catch((error: unknown) => {
       console.error("Falló la validación del enlace de autenticación.", error);
-      setMessage("No se pudo completar el acceso. Inténtalo de nuevo.");
+      setMessage(
+        new URLSearchParams(window.location.search).get("flow") === "recovery"
+          ? "No se pudo validar el enlace de recuperación. Solicita uno nuevo desde la pantalla de inicio de sesión."
+          : "No se pudo completar el acceso. Inténtalo de nuevo.",
+      );
     });
   }, [router]);
 

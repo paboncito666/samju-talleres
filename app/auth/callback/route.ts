@@ -2,8 +2,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import { canAccessPath, isProfileRole } from "@/lib/auth/permissions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { safeReturnPath } from "@/lib/auth/return-path";
+import { getRecoveryCallbackRedirect } from "@/lib/auth/recovery-callback";
 
 export async function GET(request: NextRequest) {
+  const recoveryRedirect = getRecoveryCallbackRedirect(
+    request.url,
+    request.nextUrl.search,
+  );
+  if (recoveryRedirect) return NextResponse.redirect(recoveryRedirect);
+
   const code = request.nextUrl.searchParams.get("code");
   const requestedDestination = safeReturnPath(request.nextUrl.searchParams.get("next"));
 
@@ -22,9 +29,6 @@ export async function GET(request: NextRequest) {
     if (userError || !user) {
       console.error("No se pudo cargar el usuario después del callback.", userError);
       return NextResponse.redirect(new URL("/login?error=oauth", request.url));
-    }
-    if (request.nextUrl.searchParams.get("flow") === "recovery") {
-      return NextResponse.redirect(new URL("/restablecer-contrasena", request.url));
     }
     if (user.user_metadata?.force_password_setup === true) {
       return NextResponse.redirect(
