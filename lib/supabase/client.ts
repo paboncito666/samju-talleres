@@ -71,6 +71,10 @@ export function createSupabaseBrowserClient(): SupabaseClient {
   );
   persistSession = rememberCookie?.value !== "0";
   supabase ??= createBrowserClient(url, anonKey, {
+    auth: {
+      // Auth callback routes process URL tokens explicitly; avoid exchanging PKCE codes twice.
+      detectSessionInUrl: false,
+    },
     cookies: {
       getAll: getBrowserCookies,
       setAll(cookiesToSet) {
